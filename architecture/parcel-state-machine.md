@@ -24,9 +24,9 @@ Every accepted transition increments parcel version, appends history and adds on
 | none → Created | Customer `CreateParcel`; Merchant service `CreateBooking` | Confirmed valid quote/price; atomic idempotency and immutable snapshot |
 | Created → Assigned | Dispatcher/Admin `AssignCourier` | Active available courier, zone/capacity verified atomically; create current assignment |
 | Assigned → Assigned | Dispatcher/Admin `AssignCourier` | Explicit reassignment before pickup only; expectedVersion; release old capacity and update assignment atomically; emit one event with reassignment reason |
-| Assigned → PickedUp | Currently assigned Courier `UpdateDeliveryStatus` | Assignment still matches caller at commit |
-| PickedUp → InTransit | Currently assigned Courier `UpdateDeliveryStatus` | Expected version and assignment match |
-| InTransit → OutForDelivery | Currently assigned Courier `UpdateDeliveryStatus` | Expected version and assignment match |
+| Assigned → PickedUp | Currently assigned Courier `UpdateDeliveryStatus` | Assignment still matches caller at commit; nonblank private delivery note |
+| PickedUp → InTransit | Currently assigned Courier `UpdateDeliveryStatus` | Expected version and assignment match; nonblank private delivery note |
+| InTransit → OutForDelivery | Currently assigned Courier `UpdateDeliveryStatus` | Expected version and assignment match; nonblank private delivery note |
 | OutForDelivery → Delivered | Currently assigned Courier `CompleteDeliveryWithProof` | Valid required photo or signature stored successfully; status endpoint cannot set Delivered |
 | Assigned/PickedUp/InTransit/OutForDelivery → Failed | Currently assigned Courier `UpdateDeliveryStatus` | Required code: RecipientUnavailable, AddressUnreachable, Damaged, Other; notes optional/private |
 | Created/Assigned → Cancelled | Customer owner, merchant-owning service, Dispatcher/Admin `CancelParcel` | Before pickup; release any assignment capacity; reason required |

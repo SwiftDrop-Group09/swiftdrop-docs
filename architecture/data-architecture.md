@@ -7,7 +7,7 @@ One PostgreSQL instance at `postgres:5432` hosts four **logical databases**, eac
 | Database | Owner/login | Entities and invariants |
 |---|---|---|
 | swiftdrop_identity | Identity / identity_app | users (normalized email unique, nullable password_hash, is_active), roles, user_roles, external_identities (provider+subject unique), refresh_sessions (token_hash, family, expiry, revoked), audit_logs |
-| swiftdrop_delivery | Delivery / delivery_app | quotes (owner, request fingerprint, pricing version, expires_at, used_by), parcels (customer_id or merchant_id+external_order_id, canonical status, version), assignments, immutable price_snapshots, booking_history, proof_metadata, idempotency_keys, outbox_messages, realtime consumer inbox, zones, pricing_tiers |
+| swiftdrop_delivery | Delivery / delivery_app | quotes (owner, request fingerprint, pricing version, expires_at, used_by), parcels (customer_id or merchant_id+external_order_id, canonical status, version), couriers (id references Identity user, active/on_duty/capacity), courier_zones, assignments (courier FK, service_date), immutable price_snapshots, booking_history, proof_metadata, idempotency_keys, outbox_messages, realtime consumer inbox, zones, pricing_tiers |
 | swiftdrop_merchant | Merchant / merchant_app | businesses, api_keys (key_id, hash, salt, scopes, active), inbox_jobs (merchant_id+external_order_id unique, fingerprint, state, next_retry_at, parcel_id, parcel_status/version, last_status_changed_at, terminal_at), webhook_subscriptions, encrypted_secrets (ciphertext, nonce, key_version), webhook_jobs, webhook_attempts, dispatch inbox |
 | swiftdrop_notifications | Worker / notifications_app | inbox_messages (consumer+event_id unique), notification_jobs (event_id+recipient_id+channel unique), provider_attempts, notification_logs, webhook_dispatch_jobs (event_id+merchant_id unique) |
 
@@ -16,6 +16,12 @@ One PostgreSQL instance at `postgres:5432` hosts four **logical databases**, eac
 Booking uses a unique `(principal_id, operation, idempotency_key)` index and a canonical JSON request fingerprint. Atomic insertion reserves the key in the **same transaction** as parcel, price snapshot, quote consumption, history and outbox. Concurrent duplicates wait for the winner then return its stored status/body; same key with a changed fingerprint returns `409`. After an unresolved lock/deadline return `409 operation_in_progress` with Retry-After; retry using the same key. A committed response remains reproducible for 30 days; expired keys return `409 key_expired` rather than silently creating another parcel. Quotes are single-use; repeated keys are resolved before checking quote expiry/consumption. Merchant external-order uniqueness is retained for the order's lifetime, independent of API key rotation.
 
 Status updates compare `expectedVersion` in an atomic conditional write. Update parcel, assignment if needed, history and outbox together. No notification or webhook occurs inside that transaction. Consumer inbox/job creation commits before broker ACK. Outbox relay marks published only after broker confirmation and may publish a duplicate after crash. See [state rules](parcel-state-machine.md).
+
+## Courier operations and private notes
+
+Delivery owns explicit couriers operational profiles and courier_zones memberships; the local couriers.id equals the referenced Identity user ID, without a cross-database foreign key. assignments.courier_id is a local FK to couriers.id, and courier_zones has a unique (courier_id,zone_id) pair. Seed only verified Courier identities for the demo. Store service_date on each assignment and evaluate daily/overdue queries in configured Operations:TimeZone (proposed Asia/Colombo). Active/on-duty/capacity/zone checks run atomically with assignment.
+
+booking_history.delivery_note stores the required private note for PickedUp/InTransit/OutForDelivery; Failed stores its reason, and proof_metadata.recipient_name belongs to the final proof record. Public summaries and broker events must not serialize these fields.
 
 ## Proof and receipt storage
 

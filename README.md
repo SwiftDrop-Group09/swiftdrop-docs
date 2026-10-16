@@ -106,6 +106,8 @@ Major architectural decisions will be documented using Architecture Decision Rec
 
 - [ADR Index](architecture/decisions/README.md)
 - [ADR Template](architecture/decisions/adr-template.md)
+- [Design Patterns and Principles](architecture/design-patterns.md)
+- [Assignment Compliance Map](requirements/assignment-compliance.md)
 
 ADRs should capture the decision context, alternatives considered, selected approach, rationale, and consequences.
 
@@ -312,19 +314,19 @@ See [Local Setup](deployment/local-setup.md) and [Kubernetes Deployment](deploym
 
 ## 12. Assignment Deliverables
 
-The final submission must address the required assessment areas:
+The [verified assignment](requirements/assignment-overview.md#assessment-labels-and-clarification) prints the following category marks, totaling 100, alongside a 20-mark overall weightage. Lecturer clarification of conversion and bonus scaling remains pending:
 
-| Component                      | Weight |
+| Component                      | PDF category marks |
 | ------------------------------ | ------ |
-| Design Documentation           | 20%    |
-| Implementation                 | 50%    |
-| Testing                        | 15%    |
-| Presentation and Demonstration | 15%    |
+| Design Documentation           | 20    |
+| Implementation                 | 50    |
+| Testing                        | 15    |
+| Presentation and Demonstration | 15    |
 
 ### Bonus Targets
 
-- **Kubernetes Deployment:** Optional bonus; exact additional marks require assignment-PDF verification.
-- **AI Delivery Assistant:** Independent optional bonus; exact scoring requires assignment-PDF verification.
+- **Kubernetes Deployment:** +5 marks stated in the assignment; optional full-system deployment with ConfigMaps, Secrets, Services and Ingress.
+- **AI Delivery Assistant:** +5 marks stated for a Generative AI chatbot calling backend APIs; MCP tools are encouraged.
 
 ### Submission Materials
 
@@ -363,7 +365,7 @@ _Maintained by SwiftDrop Group 09._
 
 ## Documentation remediation baseline 2.0
 
-**Status: Proposed; team approval pending.** Outstanding verification, approval and submission tasks are tracked in the [remaining-work checklist](documentation-fix-plan.md). The [decision register](architecture/decisions/README.md) keeps DEC-01–DEC-12 Proposed; no member approval or implementation completion is invented. [Assignment overview](requirements/assignment-overview.md) separates official constraints from team choices; the missing lecturer PDF still requires verification. Assessment is 20 marks overall with 20/50/15/15 category weights.
+**Status: Proposed; team approval pending.** Outstanding verification, approval and submission tasks are tracked in the [remaining-work checklist](documentation-fix-plan.md). The [decision register](architecture/decisions/README.md) keeps DEC-01–DEC-12 Proposed; no member approval or implementation completion is invented. [Assignment overview](requirements/assignment-overview.md) and [page-by-page compliance map](requirements/assignment-compliance.md) verify the supplied PDF and separate official constraints from team choices. The source states 20 marks overall, category marks totaling 100 and +5 per optional bonus; their conversion/scaling remains a lecturer question.
 
 Canonical design sources are [service catalog](architecture/service-catalog.md), [parcel states](architecture/parcel-state-machine.md), [REST](api/rest-api.md), [events](integration/event-catalog.md), [authentication](security/authentication.md) and [environment matrix](deployment/environments.md). Three APIs + YARP + Worker use four logical DBs on one PostgreSQL instance. GraphQL and SSE live in Delivery; Merchant owns webhook signing/attempts; no cross-service SQL. Redis/GPS/SignalR and bulk ingestion are deferred. React covers all roles/public tracking and Flutter covers Customer **and** Courier. Mandatory receipt, merchant dashboard and Admin reports have explicit interfaces/tests/demo steps.
 

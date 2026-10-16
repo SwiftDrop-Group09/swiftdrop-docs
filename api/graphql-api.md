@@ -28,7 +28,7 @@ query PublicTracking {
 | assignCourier | AssignCourier | Dispatcher/Admin; same expectedVersion/capacity/reassignment |
 | updateDeliveryStatus | UpdateDeliveryStatus | Current assigned Courier; same transitions/failureReason/version |
 
-The explicit idempotencyKey argument maps to the same scoped idempotency record used by REST. GraphQL enum values map to canonical domain spelling; StatusInput cannot bypass the prohibition on Delivered (proof endpoint only). File upload/receipt, reporting and merchant management remain REST in this baseline. No parallel GraphQL business rules exist. Decimal scalar parses exact decimal strings and rejects floating-point precision loss.
+AssignInput.serviceDate uses the same optional YYYY-MM-DD/business-timezone default as REST. StatusInput.notes remains nullable at SDL level for Failed, but the shared handler requires a nonblank note for PickedUp/InTransit/OutForDelivery; missing notes fail before any write. The explicit idempotencyKey argument maps to the same scoped idempotency record used by REST. GraphQL enum values map to canonical domain spelling; StatusInput cannot bypass the prohibition on Delivered (proof endpoint only). File upload/receipt, reporting and merchant management remain REST in this baseline. No parallel GraphQL business rules exist. Decimal scalar parses exact decimal strings and rejects floating-point precision loss.
 
 GraphQL errors use `extensions.code` matching REST codes with `extensions.httpStatus` and correlationId; missing credentials use 401, insufficient role 403, foreign resource 404, invalid state/version/key 409 and field validation 400. Successful transport with field errors must not be mistaken for a committed command. Clients inspect errors before displaying success.
 

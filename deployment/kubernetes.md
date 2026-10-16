@@ -1,14 +1,16 @@
 # Kubernetes Bonus Reference
 
-> Status: Optional bonus proposal · Not deployed or tested · OPS/QA owner unassigned
+> Status: Optional +5 bonus proposal · Assignment PDF page 3 verified · Not deployed or tested · OPS/QA owner unassigned
 
 Kubernetes is independent of mandatory acceptance; [Compose](docker-compose.md) remains the proposed local baseline. No managed cluster, production guarantees, many replicas or zero-downtime behavior is claimed. There are no Kubernetes manifests in this documentation repository; the first milestone is an implementation PR in the infrastructure repository with version/commit evidence.
 
 ## Minimal demonstrable scope
 
-Start with one local kind/minikube cluster and namespace, one replica of each gateway/API/Worker/web process, four private logical databases on one PostgreSQL instance, RabbitMQ and private object storage with persistent volumes. Keep **one Delivery replica** until an approved realtime fanout design exists. Supply actual Deployments, Services, migration Jobs, PVCs, Secrets references and ingress TLS; do not put real secrets in manifests. Pin images to verified digests and set measured resource requests/limits, readiness/liveness, graceful shutdown and retry behavior.
+Start with one local kind/minikube cluster and namespace, one replica of each gateway/API/Worker/web process, four private logical databases on one PostgreSQL instance, RabbitMQ and private object storage with persistent volumes. Keep **one Delivery replica** until an approved realtime fanout design exists. Supply actual Deployments, **ConfigMaps**, **Secrets**, **Service definitions** and **Ingress** for the full frontend/backend/database/broker system, plus migration Jobs, PVCs and ingress TLS; do not put real secrets in manifests. Pin images to verified digests and set measured resource requests/limits, readiness/liveness, graceful shutdown and retry behavior.
 
 Proposed initial app budgets (to validate on the demo machine): requests 100m CPU/128Mi, limits 500m/512Mi per application; stateful dependencies need separate measured budgets. Secrets for DB, broker, signing and encrypted webhook keys are injected outside Git. NetworkPolicy/egress controls restrict service access and block internal/metadata webhook destinations; app SSRF checks remain necessary.
+
+The [+5 bonus source](../requirements/sources/ead-group-assignment.pdf#page=3) explicitly names ConfigMaps, Secrets, Services and Ingress. Helm charts are encouraged as an extra, not a prerequisite. Scaling/capping of the +5 against overall marks needs lecturer clarification.
 
 ## Bonus gates
 

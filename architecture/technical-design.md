@@ -2,9 +2,11 @@
 
 > Status: Proposed baseline 2.0 · 16 October 2026 · No implementation or approval evidence attached
 
-SwiftDrop proposes three ASP.NET Core capability APIs (Identity, Delivery Operations, Merchant Integration), YARP and a Notification/Webhook Worker. These choices are team design decisions; the [assignment](../requirements/assignment-overview.md) permits other suitable architectures and secure REST or GraphQL.
+SwiftDrop proposes three ASP.NET Core capability APIs (Identity, Delivery Operations, Merchant Integration), YARP and a Notification/Webhook Worker. These component/framework choices are team decisions; the [verified assignment](../requirements/assignment-overview.md) permits other suitable architectures and secure REST or GraphQL. Responsive web and full-system Docker/Compose are official requirements; React is the chosen permitted web framework.
 
 React supports all five roles plus public tracking. Flutter supports **Customer and Courier** as required by the agreed client scope. Both use versioned REST; optional GraphQL wrappers call the same Delivery application handlers. GraphQL is hosted in Delivery and routed through YARP at `/graphql`; it is a delivery-domain query module, not an unrestricted cross-domain BFF. Future multi-domain resolvers must use service APIs and receive a separate ADR.
+
+The assignment-required [patterns and principles note](design-patterns.md) explains SOLID/DRY, Repository/unit of work, pricing Strategy, event Observer/pub-sub and reliability tradeoffs. These are proposed designs until implementation evidence is linked.
 
 ## Structure and reliability
 

@@ -275,7 +275,7 @@
     "path": "/api/v1/couriers/me/assignments",
     "owner": "Delivery",
     "authorization": "Human JWT; Courier self",
-    "request": "PageQuery",
+    "request": "AssignmentQuery",
     "response": "ParcelPage",
     "success": "200"
   },

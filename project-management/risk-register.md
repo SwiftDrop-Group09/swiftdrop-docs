@@ -4,7 +4,7 @@
 
 | Risk | Impact | Proposed mitigation / evidence required | Suggested role | Status |
 |---|---|---|---|---|
-| Missing assignment PDF / sign-off | Official requirement drift | Attach PDF/page comparison and named approvals | REQ/PM | Open |
+| Grading conversion / design sign-off | Incorrect mark interpretation or unapproved design | [PDF/page comparison complete](../requirements/assignment-compliance.md); clarify overall/rubric/bonus conversion and obtain named approvals | REQ/PM | Source verified; clarification/approval pending |
 | Unconfirmed team allocation | Work/attribution gap | Confirm handles and evidence-based allocation | PM | Open |
 | Merchant partial failure | Duplicate/lost order | Durable inbox + stable order identity + gRPC reconciliation tests | MER/DEL | Design revised; runtime pending |
 | Broker outage/duplicate delivery | Lost or duplicated notifications | Local outbox, consumer inbox and unique jobs; failure tests | MSG/QA | Design revised; runtime pending |

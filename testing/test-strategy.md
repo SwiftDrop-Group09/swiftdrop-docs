@@ -17,3 +17,8 @@ Security gates include anonymous REST/GraphQL field absence, foreign merchant jo
 ## Reporting
 
 Pin fixture/image/tool versions, seed deterministic tariffs and data, record source commit and UTC execution timestamps. Publish xUnit/TRX/JUnit plus Cobertura coverage and browser/mobile artifacts with sanitized logs. Measure NFR timing targets under declared load/hardware; 50 concurrent users is a test target. [Coverage denominator](coverage-summary.md) excludes no business layer merely to raise results. Runtime evidence remains pending until actual source suites run. QA/SEC/domain roles review negative/recovery results before design approval and submission.
+
+
+## Assignment notification acceptance
+
+[Assignment pages 2–3](../requirements/sources/ead-group-assignment.pdf#page=2) require an event-consuming email service or mock SMS service. The proposed mandatory demo uses **mock SMS** with an observable provider attempt/output triggered by StatusChanged, plus persisted in-app records. Email may be added; a mock-email-only path or an in-app status screen alone does not establish this requirement. TC-N15/TC-REC-03/04 must execute the actual consumer/event path; all are still drafted, not passing.

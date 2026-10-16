@@ -215,7 +215,7 @@ All existing ADR-001 through ADR-005 and DEC-01 through DEC-12 remain **Proposed
 
 | Decision | Proposed choice | Alternatives and consequence | Suggested reviewer roles | Dependent contracts |
 |---|---|---|---|---|
-| DEC-01 | Separate official requirements, team choices and bonuses | Reclassify only against assignment PDF; source comparison pending | REQ/PM | [Assignment](../../requirements/assignment-overview.md), SRS |
+| DEC-01 | Separate official requirements, team choices and bonuses | Source/page comparison complete; lecturer grading conversion and team adoption approval pending | REQ/PM | [Assignment](../../requirements/assignment-overview.md), [source map](../../requirements/assignment-compliance.md), SRS |
 | DEC-02 | React all roles; Flutter Customer and Courier | Courier-only mobile contradicts recorded agreement; both need end-to-end evidence | REQ/UI | [Use cases](../../requirements/use-case-specifications.md), client matrix |
 | DEC-03 | 3 APIs + YARP + Worker; SSE in Delivery | Separate realtime service adds deployment cost; keep one Delivery instance | ARCH | [Service catalog](../service-catalog.md) |
 | DEC-04 | One PostgreSQL instance, four DBs/users on 5432 | Four containers are valid but not selected; shared instance has shared failure domain | ARCH/OPS | [Data](../data-architecture.md), Compose |

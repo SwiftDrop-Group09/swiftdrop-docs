@@ -6,7 +6,7 @@
 
 React web covers Customer, Merchant, Courier, Dispatcher and Admin, including a public tracking page usable at 320px width. Flutter supplies both **Customer and Courier** experiences; it is part of the agreed deliverable, not a courier-only extension.
 
-Customer scope includes local registration/login, Google login, profile, quote before confirmation, booking, safe public/private tracking, history and receipt download. Merchant scope includes approval, scoped API keys, durable single-order ingestion, own-order dashboard and signed status webhooks. Courier scope includes assignment view, guarded status changes, failed delivery and private proof. Operations includes assignment/workload, user/role management, merchant approval, zones/pricing and basic admin reports. Notifications include persisted in-app delivery updates and demonstrable mock email/SMS.
+Customer scope includes local registration/login, Google login, profile, quote before confirmation, booking, safe public/private tracking, history and receipt download. Merchant scope includes approval, scoped API keys, durable single-order ingestion, own-order dashboard and signed status webhooks. Courier scope includes assignment view, guarded status changes, failed delivery and private proof. Operations includes assignment/workload, user/role management, merchant approval, zones/pricing and basic admin reports. Notifications include persisted in-app delivery updates and a demonstrable mock SMS service consuming status events, as required on assignment pages 2–3.
 
 ## Team design scope
 
@@ -28,7 +28,7 @@ Bulk ingestion is explicitly deferred; the baseline has one durable asynchronous
 | A-06 | Admin seeds deterministic zones/pricing for demos; no live payment processing |
 | A-07 | Flutter and React use the same authorization and application command handlers |
 | A-08 | Internal networks still require service credentials; network location alone grants no trust |
-| A-09 | Email/SMS may use a clearly labeled local stub; durable notification records still required |
+| A-09 | Required notification demo uses a mock SMS consumer with durable jobs/attempts; email may be added but a mock-email-only demo does not establish the PDF's email-or-mock-SMS requirement |
 | A-10 | All 52 SRS requirements require test coverage; no runtime results are available in this docs repository |
 
-External submission: **15 November 2026**. Proposed internal rehearsal/freeze: **12 November 2026**. The assignment PDF, individual allocations and ADR approvers must be supplied by the team.
+External submission: **15 November 2026**. Proposed internal rehearsal/freeze: **12 November 2026**. The [assignment PDF comparison](assignment-compliance.md) is complete; grading conversion, individual allocations and ADR approvers still need confirmation.

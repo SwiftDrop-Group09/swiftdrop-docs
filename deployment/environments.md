@@ -19,6 +19,8 @@
 
 There are no database host ports 5433–5435, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in this topology. A logical database's name is part of its connection string, not a new listener. Reference Compose lives at [compose.yaml](compose.yaml); environment variable names are listed in [.env.example](.env.example).
 
+Delivery's proposed `Operations__TimeZone=Asia/Colombo` sets service-day defaults for assignments and Courier manifests; device timezone/clock cannot change resource scope. Date-based delivery reports retain their explicitly documented UTC history windows.
+
 ## Clients and non-loopback access
 
 Web uses the configured gateway base, ideally same-origin reverse proxy for `/api` and `/graphql`. Android emulator uses host bridge `10.0.2.2`; that address is **not** localhost inside Android. The safer mobile setup is `adb reverse tcp:5000 tcp:5000` and `adb reverse tcp:5173 tcp:5173`, then use loopback on the device with an explicit debug-only HTTP exception if needed. Physical-device/LAN use must provision a TLS ingress/certificate trusted by the device and set API_BASE_URL accordingly; do not publish plain HTTP development ports broadly. Flutter's build-time API_BASE_URL is client configuration, never a secret.

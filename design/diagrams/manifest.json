@@ -243,7 +243,7 @@
   },
   {
     "source": "design/diagrams/er/README.md#mermaid-2",
-    "sourceSha256": "e031736ba0cd6bb8fbb8d781624ec718f8f36a1151c71d15f94ecf4c47c4e458",
+    "sourceSha256": "14e1a712107723ecc33a6a33ed2dcba733c8cff3de79ee44c93e33bff250617a",
     "artifact": "design/diagrams/generated/design-diagrams-er-README-2.svg",
     "result": "PASS",
     "diagramId": "DIA-12",

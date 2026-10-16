@@ -105,10 +105,24 @@ erDiagram
         timestamp updated_at
     }
 
+    couriers {
+        uuid id PK
+        boolean active
+        boolean on_duty
+        integer capacity
+        bigint version
+    }
+
+    courier_zones {
+        uuid courier_id FK
+        uuid zone_id FK
+    }
+
     assignments {
         uuid id PK
         uuid parcel_id FK
-        uuid courier_id
+        uuid courier_id FK
+        date service_date
         varchar status
         timestamp assigned_at
         timestamp picked_up_at
@@ -134,6 +148,7 @@ erDiagram
         varchar to_status
         uuid changed_by
         varchar change_reason
+        varchar delivery_note
         timestamp timestamp
     }
 
@@ -161,6 +176,7 @@ erDiagram
         uuid parcel_id FK
         varchar type
         varchar storage_ref
+        varchar recipient_name
         timestamp uploaded_at
         uuid uploaded_by
     }
@@ -193,6 +209,9 @@ erDiagram
         uuid consumed_by_parcel FK
     }
 
+    couriers ||--o{ assignments : "receives"
+    couriers ||--o{ courier_zones : "serves"
+    delivery_zones ||--o{ courier_zones : "includes"
     parcels ||--o{ assignments : "assigned via"
     parcels ||--|| price_snapshots : "priced at"
     parcels ||--o{ booking_history : "history of"
@@ -447,3 +466,8 @@ flowchart LR
 These ER diagrams are logical design, not applied migrations. One PostgreSQL instance/5432 hosts all four databases with separate users. Cross-domain IDs are references, **not foreign keys into another database**. Local credentials are nullable for Google-only accounts; provider+subject is unique and cannot auto-link by email. Unique composite constraints: external_identities(provider,provider_subject); idempotency_keys(principal_id,operation,key); parcels(merchant_id,external_order_id) where nonnull; inbox_jobs(business_id,external_order_id); notification inbox(consumer,event_id); notification jobs(event_id,recipient_id,channel); dispatch jobs(event_id,merchant_id); webhook jobs(event_id,subscription_id,replay_generation).
 
 Delivery additionally owns quotes (owner/fingerprint/expiresAt/consumed parcel), realtime inbox and immutable price snapshots. Quote consumption is atomic with booking; status/version/history/outbox commit together. Merchant owns webhook_jobs and webhook_attempts; Worker owns provider_attempts, not webhook attempts. No Worker-to-Merchant DB access. See [canonical data architecture](../../../architecture/data-architecture.md) and [state matrix](../../../architecture/parcel-state-machine.md) for field/transaction details. Rendering verifies notation, not implemented schema parity.
+
+
+## Assignment-source clarification
+
+[Assignment page 2](../../../requirements/sources/ead-group-assignment.pdf#page=2) explicitly requires couriers in the ER model and daily assigned deliveries. Delivery therefore owns the couriers operational profile, zone memberships and service-date assignment fields above; Identity owns the corresponding user/role. A cross-domain user ID is not a cross-database FK. Private delivery notes and final recipient/proof metadata satisfy the note/proof requirement; the strict final photo/signature rule remains a team proposal. Actual EF migrations and named design review are still pending.

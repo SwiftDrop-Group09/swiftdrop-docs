@@ -6,7 +6,7 @@
     ],
     "preconditions": "No user exists; local auth fixture",
     "steps": "Register valid Customer; login; refresh twice with old token; logout own family",
-    "expected": "201 Customer, valid login; refresh rotates; reuse revokes family; logout 204 and no refresh; access expiry bound documented",
+    "expected": "201 Customer, valid login; refresh rotates; reuse revokes family; logout 204 and no refresh; access expiry bound documented; inspect Identity storage to verify salted Argon2id password hash, no plaintext password/log leakage",
     "status": "Drafted",
     "evidence": null
   },
@@ -169,9 +169,9 @@
     "requirements": [
       "FR-R01"
     ],
-    "preconditions": "Two couriers and assignments",
-    "steps": "Load each Courier manifest in Flutter; request another parcel",
-    "expected": "Current own assignment details only; foreign 404",
+    "preconditions": "Two provisioned Courier profiles with previous-day, today and tomorrow active assignments in configured Asia/Colombo service timezone",
+    "steps": "Load Flutter daily manifest without date, then selected date/includeOverdue=false; compare other Courier and foreign parcel requests",
+    "expected": "Default today plus active overdue work only; future work absent; selected-day filter and serviceDate/isOverdue correct; current Courier scope forced and foreign 404",
     "status": "Drafted",
     "evidence": null
   },
@@ -181,8 +181,8 @@
       "FR-R02"
     ],
     "preconditions": "Assigned Courier with current version",
-    "steps": "Progress PickedUp \u2192 InTransit \u2192 OutForDelivery; repeat/stale/direct Delivered attempts",
-    "expected": "Legal writes commit history/outbox once; invalid repeat, stale version and direct Delivered get 409",
+    "steps": "Progress PickedUp \u2192 InTransit \u2192 OutForDelivery with nonblank notes; repeat/stale/direct Delivered and missing-note attempts",
+    "expected": "Legal writes persist private note/history/outbox once; missing note 400 with no effects; invalid repeat, stale version and direct Delivered 409; notes absent from public/event DTOs",
     "status": "Drafted",
     "evidence": null
   },
@@ -235,9 +235,9 @@
     "requirements": [
       "FR-D02"
     ],
-    "preconditions": "Available courier plus full courier",
+    "preconditions": "Active on-duty operational Courier profiles with zone membership and known capacity, plus full/inactive/unprovisioned fixtures",
     "steps": "Assign available courier, then race capacity assignments on full courier",
-    "expected": "One valid versioned assignment; 422 capacity rejection or 409 race; capacity never exceeds configured maximum",
+    "expected": "One valid versioned service-date assignment; rejected capacity/inactive/unprovisioned/zone requests have no effects; race 409; configured capacity never exceeded",
     "status": "Drafted",
     "evidence": null
   },
@@ -511,8 +511,8 @@
       "NFR-15"
     ],
     "preconditions": "Pinned broker/MassTransit integration fixture",
-    "steps": "Inspect exchanges/queues, publish duplicate status, fail consumer",
-    "expected": "Declared type fanout and independent queues; proper dedup, 3 immediate retries then error",
+    "steps": "Inspect exchanges/queues; publish duplicate StatusChanged; observe actual mock SMS consumer record/provider fixture; fail consumer",
+    "expected": "Declared fanout and separate queues; mock SMS triggered once per intended recipient; inbox/job dedup; 3 immediate retries then error on processing failure",
     "status": "Drafted",
     "evidence": null
   },

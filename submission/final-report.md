@@ -2,7 +2,7 @@
 
 > Status: Proposed report baseline 2.0 · Implementation, results and member sign-off pending
 
-SwiftDrop (EAD Group 09, 10 members) proposes a parcel-delivery platform with React for all five roles and **Flutter Customer and Courier**. External submission is **15 November 2026**; optional internal freeze/rehearsal is 12 November. Assessment totals 20 marks with 20/50/15/15 category weights; lecturer-PDF comparison is still required. Do not treat ASP.NET Core/PostgreSQL/microservices/GraphQL/gRPC as official mandates; see [assignment reconciliation](../requirements/assignment-overview.md).
+SwiftDrop (EAD Group 09, 10 members) proposes a parcel-delivery platform with React for all five roles and **Flutter Customer and Courier**. External submission is **15 November 2026**; optional internal freeze/rehearsal is 12 November. The [source/page comparison](../requirements/assignment-compliance.md) is complete. The PDF states 20 marks overall, category labels totaling 100 and +5 per optional bonus; their conversion/scaling still needs lecturer clarification. Do not treat ASP.NET Core/PostgreSQL/microservices/GraphQL/gRPC as official mandates; see [assignment reconciliation](../requirements/assignment-overview.md).
 
 ## Requirements and design
 
@@ -13,6 +13,8 @@ The proposed [architecture](../architecture/technical-design.md) has YARP, three
 ## Key guarantees and limits to verify
 
 Quote preview precedes Created booking. A single [state matrix](../architecture/parcel-state-machine.md) guards courier/version updates and proof-required completion. Durable merchant inbox/reconciliation handles unknown create outcomes. StatusChanged is the sole notification trigger, with inbox/job deduplication. Public REST/GraphQL cannot navigate into private data; Google linking uses stable subject plus explicit reauthentication; webhooks use Merchant-only encrypted keys, fresh timestamp/HMAC and SSRF controls. SSE uses one Delivery instance and current-state recovery; no multi-instance broadcast guarantee. JWT logout/role revocation is bounded by 15-minute access expiry; API-key revocation is immediate.
+
+The [patterns/principles note](../architecture/design-patterns.md) covers the required design rationale. A responsive web frontend (React selected), Docker/Compose, an event-consuming email or mock SMS service, and the source-listed design/test/submission artifacts are official requirements; Flutter Customer/Courier and the selected service stack are additional team decisions.
 
 ## Implementation, testing and evidence
 

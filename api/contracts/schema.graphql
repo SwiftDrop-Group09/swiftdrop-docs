@@ -32,7 +32,7 @@ input RecipientInput { name: String!, phoneNumber: String! }
 input PackageInput { weightKg: Decimal!, size: ParcelSize! }
 input QuoteInput { pickupAddress: AddressInput!, deliveryAddress: AddressInput!, recipient: RecipientInput!, packageDetails: PackageInput! }
 input ConfirmInput { quoteId: ID!, acceptTotal: Decimal! }
-input AssignInput { parcelId: ID!, courierId: ID!, expectedVersion: Int!, reassign: Boolean = false, reason: String }
+input AssignInput { parcelId: ID!, courierId: ID!, expectedVersion: Int!, reassign: Boolean = false, reason: String, serviceDate: String }
 input StatusInput { status: ParcelStatus!, expectedVersion: Int!, failureReason: String, notes: String }
 type Query {
   trackParcel(trackingNumber: String!): PublicTrackingSummary

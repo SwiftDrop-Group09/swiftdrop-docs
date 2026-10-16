@@ -119,6 +119,7 @@ services:
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
       Grpc__Port: "8081"
+      Operations__TimeZone: Asia/Colombo
       ConnectionStrings__Database: Host=postgres;Database=swiftdrop_delivery;Username=delivery_app;Password=${DELIVERY_DB_PASSWORD}
       Broker__Host: rabbitmq
       Broker__Username: delivery_bus

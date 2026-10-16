@@ -110,8 +110,8 @@ flowchart LR
 
 | ID      | Requirement                  | Description                                                                                                       | Priority  |
 | ------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------- |
-| FR-R01  | View assigned deliveries     | A courier can view their list of currently assigned parcels with pickup and drop-off details.                      | Must      |
-| FR-R02  | Update parcel status         | A courier can update the status of an assigned parcel (e.g., Picked Up, In Transit, Delivered).                   | Must      |
+| FR-R01  | View assigned deliveries     | A courier can view assigned deliveries for a selected service day (default today), including active overdue work, with pickup and drop-off details.                      | Must      |
+| FR-R02  | Update parcel status         | A courier can update each stage of an assigned parcel with a private delivery note; final delivery uses the authorized proof-completion operation.                   | Must      |
 | FR-R03  | Upload proof of delivery     | A courier can upload a photo or signature as proof of successful delivery.                                        | Must      |
 | FR-R04  | Report failed delivery       | A courier can report a delivery failure with a reason code and optional notes.                                    | Must      |
 | FR-R05  | View delivery history        | A courier can view their completed and failed delivery records.                                                   | Should    |
@@ -135,7 +135,7 @@ flowchart LR
 | FR-A03  | Merchant approval/rejection  | An admin can review pending merchant registrations and approve or reject them with a reason.                      | Must      |
 | FR-A04  | Configure delivery zones     | An admin can create and manage delivery zones that determine courier assignment regions.                          | Must      |
 | FR-A05  | Configure pricing tiers      | An admin can define and update versioned pricing by parcel size, weight and zone (zones represent distance bands). | Must |
-| FR-A06  | View system reports          | An admin can view delivery volume reports, revenue summaries, and operational metrics.                            | Must    |
+| FR-A06  | View system reports          | An admin can view deliveries per day and success/failure counts and rates for a date range. Revenue reporting is outside the mandatory baseline.                            | Must    |
 | FR-A07  | View audit logs              | An admin can view audit logs recording user actions, authentication events, and configuration changes.            | Should    |
 
 ---
@@ -319,8 +319,9 @@ The system is considered complete when:
 
 ## Baseline 2.0 clarifications
 
-Status is Draft; no approval or implementation evidence is asserted. These requirements include team-selected quality targets beyond the assignment; see [official versus team scope](assignment-overview.md).
+Status is Draft; no approval or implementation evidence is asserted. The [supplied assignment/page comparison](assignment-compliance.md) is verified; design approval is still pending. These requirements include team-selected quality targets beyond the assignment; see [official versus team scope](assignment-overview.md). Numeric coverage/latency/concurrency/Android targets, Flutter scope, strict final photo/signature proof and extra Assigned/Cancelled states are team choices. Responsive web, full-system Docker/Compose, an event-consuming email or mock SMS service, and the short [patterns note](../architecture/design-patterns.md) are official requirements.
 
+- FR-R01/R02: daily Courier assignments use the configured business timezone (proposed Asia/Colombo), with overdue active deliveries visible. PickedUp/InTransit/OutForDelivery updates require a nonblank private delivery note; Failed requires its reason and Delivered uses final proof. The PDF allows a note or proof; requiring photo/signature for final completion is the stronger team policy.
 - FR-C04/C05: a quote is not a parcel. Customer confirms an unexpired quote before `Created`; persist its immutable price snapshot. See [parcel state machine](../architecture/parcel-state-machine.md).
 - FR-C06/NFR-18: anonymous mobile-friendly tracking exposes only `PublicTrackingSummary`; authenticated owner tracking uses REST and SSE. Public tracking excludes contacts, street addresses, courier identity, precise coordinates and proof files.
 - FR-C08 **Must**: owner downloads a receipt for a Delivered parcel; server authorizes every PDF download.

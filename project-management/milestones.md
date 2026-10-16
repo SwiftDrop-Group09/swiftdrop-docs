@@ -6,7 +6,7 @@
 
 | Gate | Proposed target | Deliverable / evidence | Current status | Suggested role |
 |---|---|---|---|---|
-| Requirements/source review | 18 October | Assignment PDF comparison; 32 FR + 20 NFR and required scope; approved owner register | Draft, source verification pending | REQ/PM |
+| Requirements/source review | 18 October | [PDF comparison](../requirements/assignment-compliance.md), 32 FR + 20 NFR and required scope; approved owner register | Source comparison complete 16 October; grading clarification/owner approval pending | REQ/PM |
 | Architecture/contracts | 21 October | DEC-01–12 review, service/state/API/event/security sign-off | Proposed baseline | ARCH/API/SEC |
 | Four UML flows | 23 October | Reviewed source + exports, narration/API/state parity | Revised draft, review pending | UML/domain |
 | Core implementation | 31 October | Linked implementation PRs, builds, migrations and web/Flutter Customer/Courier flows | Planned, not evidenced | Domain/UI |

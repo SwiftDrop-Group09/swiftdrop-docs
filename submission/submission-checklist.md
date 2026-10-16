@@ -2,11 +2,13 @@
 
 > Status: Draft readiness ledger · External deadline **15 November 2026**
 
-The assignment is worth **20 marks overall** with category weights 20/50/15/15, subject to comparison against the missing lecturer PDF. **12 November** is only the optional internal freeze/rehearsal target. Documentation edits, validation and draft test cases do not prove implementation complete. All approvals/contributions remain evidence-based.
+The [verified assignment](../requirements/assignment-overview.md) states **20 marks overall**, category labels of 20/50/15/15 marks, and **+5 per optional bonus**. The lecturer must clarify conversion/scaling; the PDF does not state a formula. **12 November** is only the optional internal freeze/rehearsal target. Documentation edits, validation and draft test cases do not prove implementation complete. All approvals/contributions remain evidence-based.
 
 ## Design and assignment
 
-- [ ] Attach authoritative assignment PDF and complete requirement/page comparison.
+- [x] Retain the supplied [assignment PDF](../requirements/sources/ead-group-assignment.pdf) and [page-by-page compliance map](../requirements/assignment-compliance.md), compared on 16 October 2026.
+- [ ] Obtain lecturer clarification of overall/rubric/bonus mark conversion.
+- [ ] Review the [patterns/principles note](../architecture/design-patterns.md) and explicit courier ER model, then link actual code/migration evidence.
 - [ ] Confirm individual owners/reviewers and DEC-01–DEC-12; record actual approver/date/PR.
 - [ ] Review SRS: 32 FR + 20 NFR; Must receipt/dashboard/reports and mobile-friendly public tracking.
 - [ ] Review Flutter Customer **and** Courier scope.
@@ -19,7 +21,7 @@ The assignment is worth **20 marks overall** with category weights 20/50/15/15, 
 - [ ] Local signup/login and Google ID-token login with safe subject linking and RBAC.
 - [ ] Quote before confirmation, idempotent booking, own history and safe public/private tracking.
 - [ ] Receipt PDF download, merchant own-order/status dashboard, Admin deliveries/day and success/failure reports.
-- [ ] Courier assignment/workload and Flutter status/failure/proof completion triggering persisted notifications and Merchant webhook.
+- [ ] Courier daily assignments/workload and Flutter noted status/failure/proof completion triggering an observable mock SMS consumer output and Merchant webhook.
 - [ ] Durable merchant job plus unknown-outcome reconciliation and duplicate protection.
 - [ ] Four private DBs/migrations, broker, private object store and real images pass clean Compose startup.
 - [ ] Mandatory flow works without Kubernetes, AI, GPS or SignalR.

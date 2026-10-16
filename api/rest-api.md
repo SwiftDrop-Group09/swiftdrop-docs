@@ -37,7 +37,7 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | AssignCourier | POST | /api/v1/deliveries/assign | Delivery | Human JWT; Dispatcher/Admin | AssignInput | Parcel | 200 |
 | UpdateDeliveryStatus | PUT | /api/v1/deliveries/{id}/status | Delivery | Human JWT; currently assigned Courier | StatusInput | Parcel | 200 |
 | CompleteDeliveryWithProof | POST | /api/v1/deliveries/{id}/pod | Delivery | Human JWT; currently assigned Courier | ProofInput | Parcel | 200 |
-| CourierAssignments | GET | /api/v1/couriers/me/assignments | Delivery | Human JWT; Courier self | PageQuery | ParcelPage | 200 |
+| CourierAssignments | GET | /api/v1/couriers/me/assignments | Delivery | Human JWT; Courier self | AssignmentQuery | ParcelPage | 200 |
 | CourierHistory | GET | /api/v1/couriers/me/history | Delivery | Human JWT; Courier self | PageQuery | ParcelPage | 200 |
 | CourierWorkload | GET | /api/v1/couriers/workload | Delivery | Human JWT; Dispatcher/Admin | PageQuery | WorkloadPage | 200 |
 | ZoneSummary | GET | /api/v1/zones/summary | Delivery | Human JWT; Dispatcher/Admin | DateQuery | ZoneSummary | 200 |
@@ -84,8 +84,8 @@ All body fields below are required unless marked optional. Reject unknown author
 | RolesInput | roles array from Customer/Courier/Merchant/Dispatcher/Admin; audit changes, prevent removing last active Admin |
 | QuoteInput | pickupAddress, deliveryAddress (street, city, postalCode, zoneId), packageDetails (weightKg >0 ≤30, size Small/Medium/Large); recipient (name, phoneNumber) is included in quote fingerprint |
 | ConfirmInput | quoteId, acceptTotal decimal; owner and full quote fingerprint checked; server reads delivery details from quote |
-| AssignInput | parcelId, courierId, expectedVersion integer ≥1, reassign boolean (default false), reason required if reassign |
-| StatusInput | status PickedUp/InTransit/OutForDelivery/Failed, expectedVersion; failureReason required for Failed; optional notes ≤500, private |
+| AssignInput | parcelId, courierId, expectedVersion integer ≥1, reassign boolean (default false), reason required if reassign; optional serviceDate YYYY-MM-DD defaults to today in configured business timezone |
+| StatusInput | status PickedUp/InTransit/OutForDelivery/Failed, expectedVersion; nonblank private notes 1–500 required for PickedUp/InTransit/OutForDelivery; failureReason required for Failed, where additional notes are optional |
 | ProofInput | multipart photo or signature (at least one, JPEG/PNG ≤5 MiB each), recipientName ≤120, expectedVersion; only OutForDelivery may complete; Idempotency-Key fingerprint includes content hashes |
 | CancelInput | expectedVersion, reason ≤500; permitted only before pickup |
 | MerchantCancelInput | merchantId, expectedVersion, reason; trusted service credential plus parcel merchant ownership match required |
@@ -98,6 +98,7 @@ All body fields below are required unless marked optional. Reject unknown author
 | ZoneInput | name, coarse city, servicePostalCodes array, active, expectedVersion on update; no overlapping postal-code ownership |
 | PricingInput | zoneId, size, baseFee ≥0, perKgFee ≥0, currency LKR, expectedVersion on update; version immutable once used |
 | PageQuery | page ≥1 default 1, pageSize 1–100 default 20; stable createdAt+id ordering |
+| AssignmentQuery | PageQuery plus optional date YYYY-MM-DD (default today in Operations:TimeZone, proposed Asia/Colombo), includeOverdue boolean default true; server always scopes current assignments to Courier sub |
 | ParcelQuery | PageQuery + optional status, from/to UTC dates; Created filter covers dispatcher unassigned; owner filter is forced server-side |
 | DateQuery | from inclusive/to exclusive UTC timestamps, maximum 366 days; required for reports, default current UTC day for dashboard |
 | EventReference | eventId, parcelId, parcelVersion; verifies persisted event belongs to that parcel/version before resolving |
@@ -154,6 +155,14 @@ Admin DeliveryReport returns from/to, `days[{date,delivered,failed}]`, delivered
 ## Merchant ingestion and partial failures
 
 SubmitMerchantOrder is **always durable asynchronous 202**, not a synchronous 201 parcel creation. Validate scope, approved business, tariff version and required fields, atomically store inbox job plus unique merchant/external order key, then return Location to GetMerchantOrder. Response has null parcel/tracking fields until processing succeeds. An embedded Merchant inbox processor claims jobs, calls the defined `CreateBooking` RPC and marks Created. Timeout means unknown outcome: set Retrying, call GetBookingByExternalOrder, then retry with the same stable key only if NotFound. Permanent validation failure sets Failed with safe reason. Retry delays 5s, 30s, 2m, 10m, then hourly with alert after 10 failures; no job is silently lost. Reconciliation of an existing successful parcel always wins over a timeout. Bulk `/parcels/bulk` and synchronous order creation are deferred and are not supported routes. Admin approval is not a parcel state.
+
+## Courier day and stage-note rules
+
+CourierAssignments returns the current Courier's active assignments with assignment.serviceDate equal to the selected date, plus still-active earlier service dates when includeOverdue=true. A future day's work is absent from today's result. Each authenticated item includes serviceDate and isOverdue; CourierHistory remains the separate terminal-history view. The server uses its configured business timezone rather than the device clock. AssignCourier records serviceDate atomically with the assignment; reassignment may explicitly reschedule it before pickup.
+
+Delivery owns couriers operational profiles (id references the Identity user ID, active, onDuty, capacity and zone memberships) and the assignment foreign key points to this local profile. A Courier role alone cannot manufacture an operational profile or assignment. The local demo seeds profiles for verified Courier identities; an unprovisioned/inactive/out-of-zone/full courier is rejected by assignment validation. No service queries Identity SQL. A separate general provisioning API is not assumed by this fixture.
+
+PickedUp/InTransit/OutForDelivery require a nonblank delivery note; missing notes return 400 before history/state/outbox changes. Failed stores its required reason; final completion stores recipientName and valid photo/signature. Notes/proof remain private and absent from StatusChanged and public timelines. The assignment permits note or proof, while the final-image/signature requirement is a proposed stronger team policy.
 
 ## Status, proof and error behavior
 
