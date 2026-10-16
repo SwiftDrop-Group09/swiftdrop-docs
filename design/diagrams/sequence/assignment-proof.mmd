@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant UI as React Dispatcher
+    participant D as Delivery API
+    participant DB as Delivery DB
+    participant C as Flutter Courier
+    participant O as Private object storage
+    UI->>D: ListParcels status=Created and CourierWorkload
+    D-->>UI: Authorized queue and capacity
+    UI->>D: POST /api/v1/deliveries/assign (AssignCourier)
+    D->>DB: Atomic expectedVersion, capacity and current-assignment checks
+    alt Stale/capacity/role rejected
+        D-->>UI: 409 / 422 / 403, no change
+    else Assigned
+        D->>DB: Commit assignment, version, history, StatusChanged outbox
+        D-->>UI: 200 Assigned and version
+        C->>D: CourierAssignments, guarded status updates
+        D-->>C: Current assigned parcel
+        Note over C,D: Assigned → PickedUp → InTransit → OutForDelivery
+        C->>D: POST /api/v1/deliveries/{id}/pod (CompleteDeliveryWithProof)
+        D->>O: Validate and store private proof
+        alt Storage failed
+            D-->>C: 503, status unchanged
+        else Stored
+            D->>DB: Commit Delivered only if assignment/version still match
+            alt Concurrent reassignment/status conflict
+                D-->>C: 409 / 404, orphan cleaned after 24h
+            else Success
+                D-->>C: 200 Delivered, relay notifies asynchronously
+            end
+        end
+    end

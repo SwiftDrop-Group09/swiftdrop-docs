@@ -1,0 +1,35 @@
+# Remaining Documentation and Submission Work
+
+> Status: Pending verification and approval · Updated 16 October 2026
+
+Only outstanding work is listed here. Suggested roles remain unassigned until the team confirms names. Record the reviewer, date and PR/CI/artifact link before closing an item; passing documentation checks does not establish runtime behavior or team approval.
+
+## Requirements, ownership and design approval
+
+- [ ] **REQ / PM:** Ask the lecturer how the PDF's 20-mark overall weightage relates to its category labels totaling 100, and how each verified +5 bonus is scaled/capped. Record the clarification in the [assignment overview](requirements/assignment-overview.md#assessment-labels-and-clarification); the supplied PDF/page comparison is already recorded in the [compliance map](requirements/assignment-compliance.md).
+- [ ] **PM:** Confirm named owners/reviewers, actual allocations and the proposed [schedule](project-management/milestones.md). Keep 12 November 2026 as an optional internal freeze/rehearsal and 15 November 2026 as the external submission deadline. Record allocations in [team responsibilities](project-management/team-responsibilities.md).
+- [ ] **ARCH / API / SEC / domain owners:** Review and approve DEC-01–DEC-12 in the [decision register](architecture/decisions/README.md), including service/data ownership, parcel transitions, authentication, asynchronous merchant orders, GraphQL/SSE hosting, webhook signing, bounded JWT revocation and deferred scope. Add actual approvers, dates and reviewed PR links before changing Proposed to Accepted.
+- [ ] **UML / API / domain / UI / SEC / MSG:** Approve the [four use-case narratives](requirements/use-case-specifications.md) and all diagrams in the [index](design/diagrams/README.md). Check clients, exact operations/events, ownership/state/version guards, success/failure branches, outbox ordering, retries, privacy and formal activity notation. Complete visual review of every export and record sign-off in the index.
+
+## Implementation and runtime verification
+
+- [ ] **Domain owners / UI:** Link real implementation PRs and tested builds for the [52 mapped requirements](requirements/requirements-traceability.md). Demonstrate all mandatory features, including receipt download, Merchant own-order/status dashboard, Admin deliveries/day and success/failure reports, safe mobile-friendly public tracking, and Flutter Customer **and** Courier experiences.
+- [ ] **API / domain owners:** Compare owning-code OpenAPI, GraphQL and protobuf contracts with the [design fixtures](api/api-reference.md). Verify shared REST/GraphQL handlers, exact routes/RPCs, state/event serialization and authorization policies; record source commits and compatibility results.
+- [ ] **SEC / QA:** Execute the [authentication and security-negative cases](testing/test-cases.md): local and Google SDK login/linking on both client platforms, disabled users, refresh replay/rotation, JWT role/logout expiry bounds, immediate API-key revocation/scopes, public tracking privacy, cross-customer/merchant/courier denial, private proof/receipt access, webhook HMAC freshness/replay/SSRF and service/database boundaries. Attach results and verify rejected operations have no side effects.
+- [ ] **DEL / MER / MSG / QA:** Execute the [distributed recovery cases](testing/test-cases.md): concurrent idempotency keys, changed request fingerprints, unknown gRPC outcomes and reconciliation, broker outage/outbox recovery, duplicate/reordered events, assignment/status races, proof storage/DB failures and cleanup, and exact webhook HTTP retries with fresh signatures. Verify actual broker exchanges, bindings, scoped permissions, consumers and durable jobs against the [event catalog](integration/event-catalog.md).
+- [ ] **UI / QA:** Test real-browser authenticated SSE and Flutter streaming, reconnect/snapshot races, token expiry and assignment changes using the [realtime contract](integration/realtime-tracking.md). Record Customer/Courier Google configuration, device/emulator/API level, networking, proof capture and onboarding results from [local setup](deployment/local-setup.md).
+- [ ] **QA / UI / OPS:** Measure the SRS performance/usability targets with declared load and hardware: API p95 ≤500 ms, status updates ≤2 seconds, 50 concurrent users, responsive public tracking at 320px+, safe error responses and Android API 26+ support. Record actual results rather than target values.
+
+## Deployment, tests and submission evidence
+
+- [ ] **OPS / ARCH:** Supply real application images/build contexts, pinned versions, per-owner migrations for all four logical databases, health checks, YARP routes, signing/encryption keys and workload credentials for [Compose](deployment/docker-compose.md). On a working Docker daemon, verify clean startup, database isolation, notification persistence, broker/object-store bootstrap permissions, private storage, TLS/nonlocal routing and mandatory end-to-end smoke flows. Record reproducible commands, source commits and sanitized logs.
+- [ ] **QA:** Implement and execute the [68 drafted test cases](testing/test-cases.md) in the owning repositories. Record pass/fail/skip/block outcomes, dates, commands, CI run URLs and artifacts in [test results](testing/test-results.md). Publish actual ≥80% business-logic unit line coverage with raw counts/exclusions and separate branch metrics as defined in [coverage summary](testing/coverage-summary.md).
+- [ ] **PM / team:** Populate the [contribution log](project-management/contribution-log.md) with verified member names/handles, actual PR/design/review/test evidence and sign-off; produce the final individual contribution sheet without placeholder attribution.
+- [ ] **PM / QA / team:** Complete the [submission checklist](submission/submission-checklist.md): final report/design PDF with all required deliverables, source release/setup package, real test/coverage/screenshots, approved diagrams and the [mandatory demo rehearsal](submission/demo-plan.md). Verify the final report PDF and demo against the implemented baseline, obtain a reviewed PR approval and submit by 15 November 2026.
+
+## Independent optional bonuses
+
+- [ ] **OPS / QA:** If pursuing the [Kubernetes bonus](deployment/kubernetes.md), provide reviewed manifests and a tested minimal local-cluster deployment with persistence, migrations, health, secrets, resource budgets and mandatory-flow evidence. Scaling claims need separate tests and an approved realtime broadcast design.
+- [ ] **AI owner / SEC / QA:** If pursuing the [AI assistant bonus](bonus/ai-delivery-assistant.md), implement only the reviewed TrackParcel/EstimateFee tool scope after API/RBAC approval; test authorization, injection, invalid inputs and dependency failures, and attach actual tool-call/demo evidence.
+
+Kubernetes and AI do not block mandatory acceptance. Bulk ingestion, GPS/SignalR/live maps and multi-instance realtime remain deferred scope; approve and test them separately if adopted. Existing documentation-check evidence is retained in [documentation validation](testing/documentation-validation.md).

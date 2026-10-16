@@ -1,0 +1,23 @@
+@startuml
+title Assignment and capacity/version checks — Proposed 2.0
+skinparam shadowing false
+|React Dispatcher|
+start
+:ListParcels Created and CourierWorkload;
+if (Available courier?) then (yes)
+  :AssignCourier with expectedVersion;
+else (no)
+  :Leave unassigned; retry later;
+  stop
+endif
+|Delivery API|
+:Lock parcel and courier capacity;
+if (Role, pre-pickup state, version, zone and capacity valid?) then (yes)
+  :Atomically release old assignment if reassigning;
+  :Commit new assignment + history + version + outbox;
+  :Return Assigned;
+else (no)
+  :403/409/422; no changes;
+endif
+stop
+@enduml

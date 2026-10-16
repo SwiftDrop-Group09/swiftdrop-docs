@@ -1,0 +1,712 @@
+[
+  {
+    "requirementId": "FR-C01",
+    "title": "Customer registration",
+    "operationIds": [
+      "Register",
+      "Login",
+      "Refresh",
+      "Logout"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-C01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C02",
+    "title": "Google OIDC login",
+    "operationIds": [
+      "GoogleLogin",
+      "LinkGoogle"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-C02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C03",
+    "title": "Profile management",
+    "operationIds": [
+      "GetProfile",
+      "UpdateProfile"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-C03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C04",
+    "title": "Create parcel booking",
+    "operationIds": [
+      "CreateParcel"
+    ],
+    "event": "StatusChanged",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-C04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C05",
+    "title": "Fee estimation",
+    "operationIds": [
+      "EstimateFee"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-C05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C06",
+    "title": "Real-time parcel tracking",
+    "operationIds": [
+      "PublicTrack",
+      "GetParcel",
+      "ParcelEvents"
+    ],
+    "event": "StatusChanged",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-C06"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C07",
+    "title": "Delivery history",
+    "operationIds": [
+      "ListParcels"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-C07"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-C08",
+    "title": "Download receipt",
+    "operationIds": [
+      "DownloadReceipt"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Customer + Flutter Customer",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-C08"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M01",
+    "title": "Merchant registration",
+    "operationIds": [
+      "RegisterMerchant"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M02",
+    "title": "Admin approval workflow",
+    "operationIds": [
+      "SetMerchantStatus"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M03",
+    "title": "API key management",
+    "operationIds": [
+      "CreateApiKey",
+      "ListApiKeys",
+      "RevokeApiKey"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M04",
+    "title": "Submit order via API",
+    "operationIds": [
+      "SubmitMerchantOrder"
+    ],
+    "event": "StatusChanged",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M05",
+    "title": "Webhook subscription",
+    "operationIds": [
+      "CreateWebhook",
+      "ListWebhooks",
+      "DeleteWebhook",
+      "ListWebhookAttempts",
+      "ReplayWebhook"
+    ],
+    "event": "StatusChanged",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M06",
+    "title": "Merchant dashboard",
+    "operationIds": [
+      "MerchantDashboard",
+      "ListMerchantOrders"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M06"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-M07",
+    "title": "Order status tracking",
+    "operationIds": [
+      "GetMerchantOrder"
+    ],
+    "event": "StatusChanged",
+    "client": "React Merchant / external merchant system",
+    "suggestedOwnerRoles": "MER/UI",
+    "testIds": [
+      "TC-M07"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-R01",
+    "title": "View assigned deliveries",
+    "operationIds": [
+      "CourierAssignments"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Courier + Flutter Courier",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-R01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-R02",
+    "title": "Update parcel status",
+    "operationIds": [
+      "UpdateDeliveryStatus"
+    ],
+    "event": "StatusChanged",
+    "client": "React Courier + Flutter Courier",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-R02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-R03",
+    "title": "Upload proof of delivery",
+    "operationIds": [
+      "CompleteDeliveryWithProof"
+    ],
+    "event": "StatusChanged",
+    "client": "React Courier + Flutter Courier",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-R03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-R04",
+    "title": "Report failed delivery",
+    "operationIds": [
+      "UpdateDeliveryStatus"
+    ],
+    "event": "StatusChanged",
+    "client": "React Courier + Flutter Courier",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-R04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-R05",
+    "title": "View delivery history",
+    "operationIds": [
+      "CourierHistory"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Courier + Flutter Courier",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-R05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-D01",
+    "title": "View unassigned parcels",
+    "operationIds": [
+      "ListParcels"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Dispatcher",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-D01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-D02",
+    "title": "Assign courier to parcel",
+    "operationIds": [
+      "AssignCourier"
+    ],
+    "event": "StatusChanged",
+    "client": "React Dispatcher",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-D02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-D03",
+    "title": "Monitor courier workload",
+    "operationIds": [
+      "CourierWorkload"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Dispatcher",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-D03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-D04",
+    "title": "Reassign delivery",
+    "operationIds": [
+      "AssignCourier"
+    ],
+    "event": "StatusChanged",
+    "client": "React Dispatcher",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-D04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-D05",
+    "title": "View delivery zone summary",
+    "operationIds": [
+      "ZoneSummary"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Dispatcher",
+    "suggestedOwnerRoles": "DEL/UI",
+    "testIds": [
+      "TC-D05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A01",
+    "title": "User management",
+    "operationIds": [
+      "ListUsers",
+      "CreateUser",
+      "UpdateUser",
+      "DeactivateUser"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-A01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A02",
+    "title": "Role assignment",
+    "operationIds": [
+      "SetRoles"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-A02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A03",
+    "title": "Merchant approval/rejection",
+    "operationIds": [
+      "ListMerchants",
+      "SetMerchantStatus"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "API/UI",
+    "testIds": [
+      "TC-A03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A04",
+    "title": "Configure delivery zones",
+    "operationIds": [
+      "ListZones",
+      "CreateZone",
+      "UpdateZone"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "API/UI",
+    "testIds": [
+      "TC-A04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A05",
+    "title": "Configure pricing tiers",
+    "operationIds": [
+      "ListPricing",
+      "CreatePricing",
+      "UpdatePricing"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "API/UI",
+    "testIds": [
+      "TC-A05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A06",
+    "title": "View system reports",
+    "operationIds": [
+      "DeliveryReport"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "API/UI",
+    "testIds": [
+      "TC-A06"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "FR-A07",
+    "title": "View audit logs",
+    "operationIds": [
+      "ListAudit"
+    ],
+    "event": "None (no status side effect)",
+    "client": "React Admin",
+    "suggestedOwnerRoles": "SEC/UI",
+    "testIds": [
+      "TC-A07"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-01",
+    "title": "API responses must return within 500 ms at the 95th percentile under normal load.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "Delivery/Identity",
+    "testIds": [
+      "TC-N01"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-02",
+    "title": "Real-time tracking updates must be delivered to subscribed clients within 2 seconds of a status change.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "Delivery/MSG",
+    "testIds": [
+      "TC-N02"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-03",
+    "title": "The system must support at least 50 concurrent users for demonstration purposes.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "QA/OPS",
+    "testIds": [
+      "TC-N03"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-04",
+    "title": "All external API communication must use HTTPS (TLS 1.2+).",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC/OPS",
+    "testIds": [
+      "TC-N04"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-05",
+    "title": "User authentication must use Google OIDC with application-issued JWTs (expiry \u2264 15 minutes).",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC",
+    "testIds": [
+      "TC-N05"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-06",
+    "title": "Merchant API keys must be stored as hashed values; raw keys are shown only at creation time.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC/MER",
+    "testIds": [
+      "TC-N06"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-07",
+    "title": "Webhook payloads must be signed with HMAC-SHA256 using per-merchant secrets.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC/MER",
+    "testIds": [
+      "TC-N07"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-08",
+    "title": "Role-based access control must be enforced on every API endpoint.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC",
+    "testIds": [
+      "TC-N08"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-09",
+    "title": "Merchant secrets and sensitive configuration must be encrypted at rest.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "SEC/OPS",
+    "testIds": [
+      "TC-N09"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-10",
+    "title": "Booking operations must be idempotent using client-generated idempotency keys.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "DEL/MER",
+    "testIds": [
+      "TC-N10"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-11",
+    "title": "Events must be published reliably using a transactional outbox pattern, preventing message loss.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "DEL/MSG",
+    "testIds": [
+      "TC-N11"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-12",
+    "title": "Webhook delivery must retry failed attempts with exponential backoff (one initial attempt plus five retries, per the webhook policy).",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "MER/MSG",
+    "testIds": [
+      "TC-N12"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-13",
+    "title": "Failed webhook attempts must be logged and available for manual inspection and replay.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "MER/QA",
+    "testIds": [
+      "TC-N13"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-14",
+    "title": "Each backend service must own its own PostgreSQL database with no shared schemas.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "ARCH/OPS",
+    "testIds": [
+      "TC-N14"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-15",
+    "title": "Services must communicate asynchronously for non-blocking operations via RabbitMQ.",
+    "operationIds": [],
+    "event": "StatusChanged",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "MSG",
+    "testIds": [
+      "TC-N15"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-16",
+    "title": "Services must be independently deployable as Docker containers.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "OPS",
+    "testIds": [
+      "TC-N16"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-17",
+    "title": "The codebase must maintain \u2265 80% unit test coverage for business logic.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "QA",
+    "testIds": [
+      "TC-N17"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-18",
+    "title": "The web application must be responsive across mobile (320px+), tablet and desktop viewports, including the public tracking page.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "UI/QA",
+    "testIds": [
+      "TC-N18"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-19",
+    "title": "Error responses must return meaningful messages with appropriate HTTP status codes.",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "API/QA",
+    "testIds": [
+      "TC-N19"
+    ],
+    "implementationEvidence": null
+  },
+  {
+    "requirementId": "NFR-20",
+    "title": "The mobile application must support Android devices (API level 26+).",
+    "operationIds": [],
+    "event": "None / cross-cutting",
+    "client": "Cross-cutting / see acceptance scenario",
+    "suggestedOwnerRoles": "UI/QA",
+    "testIds": [
+      "TC-N20"
+    ],
+    "implementationEvidence": null
+  }
+]

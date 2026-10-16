@@ -1,0 +1,47 @@
+scalar DateTime
+scalar Decimal
+
+enum ParcelStatus { CREATED ASSIGNED PICKED_UP IN_TRANSIT OUT_FOR_DELIVERY DELIVERED FAILED CANCELLED }
+enum ParcelSize { Small Medium Large }
+type PublicTrackingEntry { status: ParcelStatus!, timestamp: DateTime!, label: String! }
+type PublicTrackingSummary {
+  trackingNumber: String!
+  status: ParcelStatus!
+  originCity: String!
+  destinationCity: String!
+  lastUpdatedAt: DateTime!
+  timeline: [PublicTrackingEntry!]!
+}
+type Address { street: String!, city: String!, postalCode: String!, zoneId: ID! }
+type Recipient { name: String!, phoneNumber: String! }
+type PriceSnapshot { total: Decimal!, currency: String!, pricingVersion: String! }
+type Parcel {
+  id: ID!
+  trackingNumber: String!
+  status: ParcelStatus!
+  version: Int!
+  recipient: Recipient!
+  pickupAddress: Address!
+  deliveryAddress: Address!
+  priceSnapshot: PriceSnapshot!
+}
+type ParcelPage { items: [Parcel!]!, totalCount: Int!, page: Int!, pageSize: Int! }
+type Quote { quoteId: ID!, total: Decimal!, currency: String!, pricingVersion: String!, expiresAt: DateTime!, fingerprint: String! }
+input AddressInput { street: String!, city: String!, postalCode: String!, zoneId: ID! }
+input RecipientInput { name: String!, phoneNumber: String! }
+input PackageInput { weightKg: Decimal!, size: ParcelSize! }
+input QuoteInput { pickupAddress: AddressInput!, deliveryAddress: AddressInput!, recipient: RecipientInput!, packageDetails: PackageInput! }
+input ConfirmInput { quoteId: ID!, acceptTotal: Decimal! }
+input AssignInput { parcelId: ID!, courierId: ID!, expectedVersion: Int!, reassign: Boolean = false, reason: String, serviceDate: String }
+input StatusInput { status: ParcelStatus!, expectedVersion: Int!, failureReason: String, notes: String }
+type Query {
+  trackParcel(trackingNumber: String!): PublicTrackingSummary
+  parcel(id: ID!): Parcel
+  myParcels(page: Int = 1, pageSize: Int = 20): ParcelPage!
+}
+type Mutation {
+  estimateFee(input: QuoteInput!): Quote!
+  createParcel(input: ConfirmInput!, idempotencyKey: String!): Parcel!
+  assignCourier(input: AssignInput!, idempotencyKey: String!): Parcel!
+  updateDeliveryStatus(id: ID!, input: StatusInput!, idempotencyKey: String!): Parcel!
+}

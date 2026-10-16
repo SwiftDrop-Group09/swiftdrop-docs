@@ -1,0 +1,26 @@
+flowchart LR
+    R[React all five roles and public tracking] --> G["YARP gateway (.NET 10)"]
+    F[Flutter Customer and Courier] --> G
+    S[Merchant system] -->|Scoped API key| G
+    G --> I["Identity API (ASP.NET Core 10)"]
+    G --> D["Delivery API (ASP.NET Core 10) REST GraphQL SSE"]
+    G --> M["Merchant API (ASP.NET Core 10) and processors"]
+    I --> IDB[(Identity DB)]
+    D --> DDB[(Delivery DB and outbox)]
+    M --> MDB[(Merchant DB)]
+    M -->|CreateBooking and reconciliation gRPC| D
+    D --> O[(Private proof and receipt storage)]
+    D -->|Local outbox relay| B[RabbitMQ StatusChanged fanout]
+    B -->|notification-status| W["Notification/Webhook Worker (.NET 10)"]
+    B -->|delivery-realtime| D
+    W --> NDB[(Notifications DB)]
+    W -->|Scoped DispatchWebhook API| M
+    W -->|Scoped recipient context API| D
+    M -->|Fresh timestamp HMAC HTTPS| E[Merchant public receiver]
+    C[Google SDK on clients] -->|ID token through gateway| I
+    subgraph P[One PostgreSQL instance - four isolated logical databases]
+        IDB
+        DDB
+        MDB
+        NDB
+    end

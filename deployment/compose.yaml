@@ -1,0 +1,219 @@
+name: swiftdrop-reference
+
+networks:
+  backend:
+    internal: true
+  egress: {}
+
+volumes:
+  postgres-data: {}
+  broker-data: {}
+  object-data: {}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set a generated local admin password}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set a distinct password}
+      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?Set a distinct password}
+      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD:?Set a distinct password}
+      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:?Set a distinct password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-databases.sh:ro
+    ports: ["127.0.0.1:5432:5432"]
+    networks: [backend]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          pg_isready -U postgres &&
+          test $$(psql -U postgres -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname IN ('swiftdrop_identity','swiftdrop_delivery','swiftdrop_merchant','swiftdrop_notifications')") = 4
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+      RABBITMQ_DEFAULT_USER: local_admin
+      RABBITMQ_DEFAULT_PASS: ${BROKER_ADMIN_PASSWORD:?Set local broker admin password}
+      RABBITMQ_ERLANG_COOKIE: ${BROKER_ADMIN_PASSWORD:?Set local broker admin password}
+    volumes: ["broker-data:/var/lib/rabbitmq"]
+    ports: ["127.0.0.1:15672:15672"]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  broker-init:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${BROKER_ADMIN_PASSWORD:?Set local broker admin password}
+      DELIVERY_BROKER_PASSWORD: ${DELIVERY_BROKER_PASSWORD:?Set Delivery broker password}
+      WORKER_BROKER_PASSWORD: ${WORKER_BROKER_PASSWORD:?Set Worker broker password}
+    volumes: ["./broker/init-users.sh:/init-users.sh:ro"]
+    entrypoint: ["sh", "/init-users.sh"]
+    depends_on:
+      rabbitmq: {condition: service_healthy}
+    networks: [backend]
+
+  object-store:
+    image: ${OBJECT_STORE_IMAGE:?Set a tested object store image}
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: local_admin
+      MINIO_ROOT_PASSWORD: ${OBJECT_ROOT_PASSWORD:?Set local object admin password}
+    volumes: ["object-data:/data"]
+    ports: ["127.0.0.1:9001:9001"]
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  object-init:
+    image: ${OBJECT_CLIENT_IMAGE:?Set a tested object client image}
+    environment:
+      MINIO_ROOT_USER: local_admin
+      MINIO_ROOT_PASSWORD: ${OBJECT_ROOT_PASSWORD:?Set local object admin password}
+      DELIVERY_OBJECT_ACCESS_KEY: ${DELIVERY_OBJECT_ACCESS_KEY:?Set Delivery object key ID}
+      DELIVERY_OBJECT_SECRET_KEY: ${DELIVERY_OBJECT_SECRET_KEY:?Set Delivery object secret}
+    volumes:
+      - ./object-store/init-storage.sh:/init-storage.sh:ro
+      - ./object-store/delivery-policy.json:/config/delivery-policy.json:ro
+    entrypoint: ["sh", "/init-storage.sh"]
+    depends_on:
+      object-store: {condition: service_healthy}
+    networks: [backend]
+
+  identity-service:
+    profiles: [application]
+    image: ${IDENTITY_IMAGE:-swiftdrop/identity:design-unbuilt}
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_identity;Username=identity_app;Password=${IDENTITY_DB_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Google__WebClientId: ${GOOGLE_WEB_CLIENT_ID}
+      Google__AndroidClientId: ${GOOGLE_ANDROID_CLIENT_ID}
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  delivery-service:
+    profiles: [application]
+    image: ${DELIVERY_IMAGE:-swiftdrop/delivery:design-unbuilt}
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Grpc__Port: "8081"
+      Operations__TimeZone: Asia/Colombo
+      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_delivery;Username=delivery_app;Password=${DELIVERY_DB_PASSWORD}
+      Broker__Host: rabbitmq
+      Broker__Username: delivery_bus
+      Broker__Password: ${DELIVERY_BROKER_PASSWORD}
+      ObjectStore__Endpoint: http://object-store:9000
+      ObjectStore__Bucket: swiftdrop-private
+      ObjectStore__AccessKey: ${DELIVERY_OBJECT_ACCESS_KEY}
+      ObjectStore__SecretKey: ${DELIVERY_OBJECT_SECRET_KEY}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
+    depends_on:
+      postgres: {condition: service_healthy}
+      broker-init: {condition: service_completed_successfully}
+      object-init: {condition: service_completed_successfully}
+      identity-service: {condition: service_healthy}
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  merchant-service:
+    profiles: [application]
+    image: ${MERCHANT_IMAGE:-swiftdrop/merchant:design-unbuilt}
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_merchant;Username=merchant_app;Password=${MERCHANT_DB_PASSWORD}
+      Delivery__GrpcAddress: http://delivery-service:8081
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
+    depends_on:
+      postgres: {condition: service_healthy}
+      delivery-service: {condition: service_healthy}
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  notification-worker:
+    profiles: [application]
+    image: ${WORKER_IMAGE:-swiftdrop/notification-worker:design-unbuilt}
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_notifications;Username=notifications_app;Password=${NOTIFICATIONS_DB_PASSWORD}
+      Broker__Host: rabbitmq
+      Broker__Username: worker_bus
+      Broker__Password: ${WORKER_BROKER_PASSWORD}
+      Merchant__BaseUrl: http://merchant-service:8080
+      Delivery__BaseUrl: http://delivery-service:8080
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
+    depends_on:
+      postgres: {condition: service_healthy}
+      broker-init: {condition: service_completed_successfully}
+      merchant-service: {condition: service_healthy}
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  gateway:
+    profiles: [application]
+    image: ${GATEWAY_IMAGE:-swiftdrop/gateway:design-unbuilt}
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Identity__BaseUrl: http://identity-service:8080
+      Delivery__BaseUrl: http://delivery-service:8080
+      Merchant__BaseUrl: http://merchant-service:8080
+      Web__Origin: ${WEB_ORIGIN}
+    ports: ["127.0.0.1:5000:8080"]
+    depends_on:
+      identity-service: {condition: service_healthy}
+      delivery-service: {condition: service_healthy}
+      merchant-service: {condition: service_healthy}
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    profiles: [application]
+    image: ${WEB_IMAGE:-swiftdrop/web:design-unbuilt}
+    environment:
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
+    ports: ["127.0.0.1:5173:80"]
+    depends_on:
+      gateway: {condition: service_healthy}
+    networks: [egress]

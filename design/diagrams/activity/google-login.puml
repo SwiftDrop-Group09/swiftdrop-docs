@@ -1,0 +1,40 @@
+@startuml
+title Google ID-token login and explicit linking — Proposed 2.0
+skinparam shadowing false
+|React or Flutter user|
+start
+:Start platform Google SDK sign-in;
+if (Cancelled or failed?) then (yes)
+  :No application session;
+  stop
+endif
+:GoogleLogin with SDK ID token;
+|Identity API|
+if (Signature, issuer, audience, expiry and CSRF/nonce valid?) then (yes)
+else (no)
+  :401; no mutation;
+  stop
+endif
+:Lookup provider + subject;
+if (Linked identity exists?) then (yes)
+  if (User active?) then (yes)
+  else (no)
+    :Reject disabled account;
+    stop
+  endif
+else (no)
+  if (Local email collision?) then (yes)
+    :409 account_link_required;
+    :Require authenticated local reauthentication for LinkGoogle;
+    stop
+  else (no)
+    :Atomically create Customer and external subject link;
+  endif
+endif
+:Persist hashed refresh session;
+:Issue app JWT at most 900 seconds;
+|React or Flutter user|
+:Store tokens using platform policy;
+:Open role-authorized experience;
+stop
+@enduml
