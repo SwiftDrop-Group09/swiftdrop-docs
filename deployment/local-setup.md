@@ -1,6 +1,6 @@
 # Local Setup: Web and Backend
 
-> Status: Docker Compose development workflow defined · Runtime verification pending
+> Status: Shared Docker Compose scaffold is runnable without Neon · Feature acceptance remains separate
 
 ## Repositories and prerequisites
 
@@ -18,18 +18,55 @@ For quick iteration, developers may run the hosts directly. Docker Compose is
 the shared container/network verification path. Both are selected through the
 infra runner.
 
+## Per-developer configuration
+
+The default shared scaffold can start with sample configuration and does not
+require any Neon credentials. Each developer can run the runner once to create
+the ignored local environment file automatically, or copy it explicitly:
+
+```sh
+cp development/.env.example development/.env
+chmod 600 development/.env
+```
+
+Neon credentials are needed only to work on database-backed features, not to
+start the shared stack. For Identity feature development, configure
+`IDENTITY_DATABASE_CONNECTION_STRING` using the provisioned runtime
+`identity_app` role and `IDENTITY_MIGRATION_CONNECTION_STRING` using a separate
+`identity_migrator` login; keep TLS required and do not give DDL rights to the
+runtime role. If the migration role does not exist yet, a Neon database owner
+can create it while connected to `swiftdrop_identity`:
+
+```sql
+CREATE ROLE identity_migrator LOGIN;
+GRANT CONNECT ON DATABASE swiftdrop_identity TO identity_migrator;
+GRANT USAGE, CREATE ON SCHEMA public TO identity_migrator;
+GRANT USAGE ON SCHEMA public TO identity_app;
+```
+
+Set the role password through Neon’s role controls and store it only in the
+local environment file; never put it in SQL history, commit it, or share it.
+The Identity migration grants the required DML permissions to `identity_app`.
+Do not copy another developer's populated `.env`, commit it, paste connection
+strings into tickets/chat, or print rendered Compose configuration. The runner
+creates a local RabbitMQ password on first use. Other DB entries are reserved
+for their service adapters.
+
 ### Host mode
 
 Install the pinned .NET SDK, Node/npm, run `npm ci` once in
-`swiftdrop-frontend`, then from `swiftdrop-infra`:
+`swiftdrop-frontend`, populate the local environment file, then from
+`swiftdrop-infra`:
 
 ```sh
 ./development/run.sh up --mode host
 ```
 
-This runs five backend processes and the Vite frontend on the documented
+The runner starts five backend processes and Vite on their documented
 loopback addresses; press Ctrl-C to stop them. It does not start RabbitMQ
-because the current scaffold has no broker adapter.
+because application services do not yet use the broker. When a valid Identity
+migration connection is configured, the runner applies that migration before
+starting; otherwise it skips migrations and still starts the scaffold.
 
 ### Docker mode
 
@@ -40,9 +77,18 @@ Start Docker Engine/Desktop and run from `swiftdrop-infra`:
 ```
 
 This builds and starts Gateway, Identity, Delivery, Merchant, Notification
-Worker, web, and local RabbitMQ as separate containers. The script creates an
-ignored `development/.env` with a generated local RabbitMQ password on first
-use. Open `http://localhost:5173`; Gateway is at `http://localhost:5000`.
+Worker, web, and local RabbitMQ as separate containers without requiring Neon.
+Identity `/health` confirms process liveness; its database `/ready` endpoint is
+separate and requires a configured connection and applied migration. Open
+`http://localhost:5173`; Gateway is at `http://localhost:5000`.
+
+Confirm the baseline without displaying any environment values:
+
+```sh
+./development/run.sh ps
+curl --fail http://localhost:5000/health
+curl --fail http://localhost:5173/
+```
 
 Use the runner for rebuilds, logs, status, and shutdown:
 
@@ -61,21 +107,22 @@ health, or get the same result from CI/a Docker-enabled teammate. Record the
 result. Host mode alone does not check image builds, Compose networking, or
 container listeners.
 
-Neon PostgreSQL remains external. Its per-service strings in
-`development/.env.example` are placeholders and are not consumed by the
-current backend scaffold. RabbitMQ is included as the selected broker, but
-backend services do not yet connect to it. MinIO is deferred until Delivery's
-proof-storage adapter is implemented. Do not treat these configuration entries
-or dependency containers as completed service integrations.
+Neon PostgreSQL remains external and optional for this scaffold-startup
+milestone. Identity's registration and migration code are present but are not
+required by the default run command; use real runtime and migration credentials
+before exercising DB-backed registration. Delivery, Merchant, and
+Notifications have no DB adapters yet. RabbitMQ is included, but application
+services do not yet connect to it. MinIO is deferred until Delivery's
+proof-storage adapter is implemented.
 
 ## Current limitations
 
-The containers currently demonstrate process startup and Gateway routing only.
-Product handlers, authentication, database/broker/object-store adapters,
-migrations, dependency-aware readiness, and notification/webhook flows still
-need implementation and testing. Feature API routes currently return `404`;
-`/health` confirms process liveness only. Docker image build and clean-checkout
-runtime acceptance remain pending on a Docker-enabled machine.
+The immediate outcome is a common runnable process baseline, not a completed
+product feature. Login/token issuance, authenticated profile routes,
+Delivery/Merchant product features, and broker/object-store flows remain future
+work. `/health` is process liveness; Identity `/ready` is its separate
+database-backed readiness check. Do not infer feature readiness from the
+scaffold health checks.
 
 ## Flutter Customer and Courier
 
@@ -98,3 +145,6 @@ orders/webhooks, notifications, authorization negatives, and its branch/PR
 review workflow. Attach commands, source commits, sanitized logs, and
 [test results](../testing/test-results.md); do not claim a feature passes before
 it is implemented and exercised.
+
+See the [Milestone 1 feature and role-based work packages](../project-management/development-milestone-1.md)
+to self-assign the remaining service work.

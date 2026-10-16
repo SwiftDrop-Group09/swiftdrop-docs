@@ -11,12 +11,12 @@
 | Delivery gRPC HTTP/2 | Not published | delivery-service:8081 | h2c local only; service JWT mandatory |
 | Merchant HTTP | Through YARP | merchant-service:8080 | Internal dispatch path not externally routed |
 | Worker health HTTP | Not published | notification-worker:8080 | /health and /ready private |
-| PostgreSQL | Neon-managed TLS endpoint | External Neon endpoint | Four logical DBs; separate owner credentials in per-service connection strings; no local DB port |
+| PostgreSQL | Neon-managed TLS endpoint | External Neon endpoint | Four logical DBs; restricted application and migration logins per service; no local DB port |
 | RabbitMQ AMQP | Not published | rabbitmq:5672 | Internal transport; backend adapter not implemented |
 | RabbitMQ console HTTP | http://127.0.0.1:15672 | rabbitmq:15672 | Local admin only; generated in ignored infra `development/.env` |
 | Object API/console | Not started in shared Compose | Deferred until Delivery proof-storage adapter | Planned private proof/receipt storage; not required to run current scaffold |
 
-There are no local database host ports, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in the shared developer topology. Neon is external to Compose; per-service sample connection strings live in `swiftdrop-infra/development/.env.example` but are not used by the current backend scaffold. The developer entry point is `swiftdrop-infra/development/run.sh`; the reference Compose in this docs repository is not the app-start command.
+There are no local database host ports, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in the shared developer topology. Neon is external to Compose; Identity consumes its private connection string for Customer registration and its migration. Delivery, Merchant, and Notifications connection strings are reserved for their future service-owned adapters. The developer entry point is `swiftdrop-infra/development/run.sh`; the reference Compose in this docs repository is not the app-start command.
 
 Delivery's proposed `Operations__TimeZone=Asia/Colombo` sets service-day defaults for assignments and Courier manifests; device timezone/clock cannot change resource scope. Date-based delivery reports retain their explicitly documented UTC history windows.
 

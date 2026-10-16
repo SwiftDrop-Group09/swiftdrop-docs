@@ -2,7 +2,7 @@
 
 > Status: Proposed baseline 2.0 · 16 October 2026 · DEC-04/06/10/12
 
-Neon-managed PostgreSQL hosts four **logical databases**, each with one owner login and separate EF migrations. Neon is external to local Compose and Kubernetes workloads; applications connect over TLS using per-service connection strings. Applications cannot connect to another owner's DB. Administrators provision database roles; application logins have no cluster administration rights.
+Neon-managed PostgreSQL hosts four **logical databases**, each with an owner login, a restricted application login, and a separate migration login used only by that service's one-shot migration task. Neon is external to local Compose and Kubernetes workloads; applications connect over TLS using per-service connection strings. Applications cannot connect to another owner's DB. Administrators provision database roles; application logins have no schema DDL or cluster administration rights.
 
 | Database | Owner/login | Entities and invariants |
 |---|---|---|
