@@ -1,158 +1,46 @@
 # SwiftDrop Application Architecture
 
-## Source
+> Status: Proposed baseline 2.0 · 16 October 2026 · DEC-01–DEC-12 sign-off pending
 
-This document is the text-readable representation of [swiftdrop-architecture.pdf](swiftdrop-architecture.pdf). The PDF is retained as the original visual architecture diagram.
+React covers all five roles and mobile-friendly public tracking. Flutter delivers **Customer and Courier** experiences. YARP routes external REST, Delivery GraphQL and authenticated SSE; domain services perform role/ownership checks independently. Three capability APIs plus one Worker are the complete backend process inventory. No separate realtime host or Redis dependency is proposed.
 
-## Technology Context
-
-- **Frontend:** React SPA
-- **Backend:** C# and ASP.NET Core
-- **API gateway and reverse proxy:** YARP
-- **Messaging:** RabbitMQ
-- **Database:** PostgreSQL
-- **Authentication:** Google OpenID Connect, application JWTs, JWKS, and refresh sessions
-
-## External Systems
-
-### Google OIDC
-
-Google OIDC is the external identity provider. It communicates with the Identity API during user authentication.
-
-### Merchant Systems
-
-Merchant systems are partner order API clients. They use API keys scoped to a merchant and communicate with the API gateway through the merchant order API.
-
-## Frontend
-
-### React SPA
-
-The React SPA supports customer, courier, and merchant workflows, including dispatch and admin functions. It communicates with the API gateway over HTTPS and receives live updates through server-sent events (SSE).
-
-## API Gateway
-
-### API Gateway / Reverse Proxy - YARP
-
-The YARP gateway is the single entry point for the React SPA and merchant systems. It performs reverse proxy routing and forwards requests to the capability APIs.
-
-Gateway responsibilities shown in the diagram:
-
-- Route browser traffic from the React SPA over HTTPS and SSE.
-- Route merchant order API requests.
-- Route authentication and user requests to the Identity API.
-- Route delivery and tracking requests to the Delivery Operations API.
-- Route merchant-specific requests to the Merchant Integration API.
-
-## Capability APIs
-
-### Identity API
-
-Responsibilities:
-
-- Account management
-- User roles
-- Google login
-- Application JWT issuance
-- JWKS support
-- Refresh sessions
-
-The Identity API owns identity-related data, including users, roles, external identities, refresh sessions, and audit logs.
-
-### Delivery Operations API
-
-Responsibilities:
-
-- Booking
-- Assignment
-- Delivery status
-- Tracking
-- Receipts
-- Reports
-- Audit
-
-The Delivery Operations API communicates with the Delivery Database using atomic writes. It owns parcel, assignment, price snapshot, history, booking idempotency, outbox, and proof metadata.
-
-The API also calls the Merchant Integration API for booking and query operations using service JWT authentication.
-
-### Merchant Integration API
-
-Responsibilities:
-
-- Merchant approval
-- Merchant keys
-- Order adapter
-- Webhook subscriptions
-- Secrets
-- Merchant dashboard
-- Delivery queues
-
-The Merchant Integration API owns merchant data, including businesses, keys, subscriptions, encrypted secrets, inbox jobs, and attempts.
-
-## Data Stores
-
-### Identity Database
-
-Stores users, roles, external identities, refresh sessions, and audit logs.
-
-### Delivery Database
-
-Stores parcels, assignments, price snapshots, booking history, idempotency records, outbox messages, and proof metadata.
-
-### Merchant Database
-
-Stores businesses, keys, subscriptions, encrypted secrets, inbox jobs, and delivery attempts.
-
-## Main Request and Data Flows
-
-1. A user authenticates through the React SPA and Google OIDC.
-2. Google OIDC communicates with the Identity API.
-3. The Identity API creates or validates the user session and issues application credentials.
-4. The React SPA sends authenticated requests to the YARP API gateway over HTTPS.
-5. The gateway routes requests to the Identity, Delivery Operations, or Merchant Integration API.
-6. Merchant systems send order API requests to the gateway using merchant-scoped API keys.
-7. The Delivery Operations API handles booking, assignment, tracking, and delivery operations.
-8. The Delivery Operations API queries or books through the Merchant Integration API using a service JWT where required.
-9. The APIs persist data in their respective PostgreSQL databases.
-10. Delivery and tracking updates are returned to the React SPA, including live updates through SSE.
-
-## Mermaid Overview
+## Component overview
 
 ```mermaid
-flowchart TB
-    google[Google OIDC\nExternal identity provider]
-    react[React SPA\nCustomer, courier, merchant\nDispatch and admin]
-    merchants[Merchant systems\nPartner order API clients\nAPI keys scoped to a merchant]
-
-    gateway[API Gateway / Reverse Proxy - YARP\nSingle browser entry point\nTLS routing and SSE]
-
-    identity[Identity API\nAccounts, roles, Google login\nJWT issuer, JWKS, refresh sessions]
-    delivery[Delivery Operations API\nBooking, assignment, status, tracking\nReceipts, reports, audit]
-    merchant[Merchant Integration API\nApproval, keys, order adapter\nWebhooks, secrets, dashboard, queues]
-
-    identityDb[(Identity PostgreSQL database\nUsers, roles, external identities\nRefresh sessions, audit log)]
-    deliveryDb[(Delivery PostgreSQL database\nParcels, assignments, price snapshots\nHistory, idempotency, outbox, proof metadata)]
-    merchantDb[(Merchant PostgreSQL database\nBusinesses, keys, subscriptions\nEncrypted secrets, inbox jobs, attempts)]
-
-    broker[RabbitMQ\nAsynchronous delivery and webhook messaging]
-    worker[Worker host\nBackground delivery and webhook processing]
-
-    google -->|OIDC| identity
-    react -->|HTTPS + SSE| gateway
-    merchants -->|Order API| gateway
-    gateway -->|Auth / user| identity
-    gateway -->|Delivery / tracking| delivery
-    gateway -->|Merchant routes| merchant
-    delivery -->|Book / query\nService JWT| merchant
-    identity --> identityDb
-    delivery -->|Atomic writes| deliveryDb
-    merchant --> merchantDb
-    delivery -->|Outbox relay| broker
-    broker --> worker
-    worker -->|Webhook delivery / queues| merchant
+flowchart LR
+    R[React all five roles and public tracking] --> G[YARP gateway]
+    F[Flutter Customer and Courier] --> G
+    S[Merchant system] -->|Scoped API key| G
+    G --> I[Identity API]
+    G --> D[Delivery API REST GraphQL SSE]
+    G --> M[Merchant API and processors]
+    I --> IDB[(Identity DB)]
+    D --> DDB[(Delivery DB and outbox)]
+    M --> MDB[(Merchant DB)]
+    M -->|CreateBooking and reconciliation gRPC| D
+    D --> O[(Private proof and receipt storage)]
+    D -->|Local outbox relay| B[RabbitMQ StatusChanged fanout]
+    B -->|notification-status| W[Notification/Webhook Worker]
+    B -->|delivery-realtime| D
+    W --> NDB[(Notifications DB)]
+    W -->|Scoped DispatchWebhook API| M
+    W -->|Scoped recipient context API| D
+    M -->|Fresh timestamp HMAC HTTPS| E[Merchant public receiver]
+    C[Google SDK on clients] -->|ID token through gateway| I
+    subgraph P[One PostgreSQL instance - four isolated logical databases]
+        IDB
+        DDB
+        MDB
+        NDB
+    end
 ```
 
-## Original Diagram
+Identity owns users/local passwords/provider subjects/refresh/roles. Delivery owns quotes, parcels, status/history/outbox, assignment, private proof/receipt, reports, GraphQL and SSE. Merchant owns businesses/API keys, durable order inbox/reconciliation, subscriptions, encrypted signing secrets and HTTP webhook attempts. Worker owns notification inbox/jobs/provider attempts and durable commands requesting Merchant dispatch. Worker cannot read Merchant DB or sign webhooks itself.
 
-[Open the original Lucidchart PDF](swiftdrop-architecture.pdf)
+One PostgreSQL instance at 5432 hosts four isolated logical databases and users; object storage is private to Delivery. Merchant→Delivery CreateBooking/GetBookingByExternalOrder are the only proposed gRPC methods. Google SDK returns an ID token; Identity validates it and issues application tokens, with no automatic email linking. A booking exists only after fee confirmation; status/history/outbox commit before asynchronous notification. SSE runs in a single Delivery instance and heals reconnect through snapshot/version recovery.
 
-> The Markdown description is intended for AI and text-based tools. The PDF remains the authoritative visual reference until the architecture is formally approved.
+## Sources and rendered artifacts
+
+[Editable Mermaid](architecture.mmd) · [Rendered SVG](architecture.svg) · [Regenerated architecture PDF](swiftdrop-architecture.pdf). The previous PDF is preserved in Git history at baseline `63d0de2`; it is superseded by this proposed diagram. PDF render and visual-review evidence appear in [validation results](../../../testing/documentation-validation.md). All approval/implementation claims require separate evidence.
+
+Canonical details: [service inventory](../../../architecture/service-catalog.md), [data ownership](../../../architecture/data-architecture.md), [state machine](../../../architecture/parcel-state-machine.md), [environment matrix](../../../deployment/environments.md), [ADRs](../../../architecture/decisions/README.md) and [diagram index](../README.md). Kubernetes and AI are optional bonuses; GPS/SignalR and bulk ingestion are deferred.

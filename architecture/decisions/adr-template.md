@@ -1,68 +1,31 @@
 # Architecture Decision Record Template
 
-Use this template when documenting a new architecture decision. Copy this file and rename it using the convention `adr-NNN-short-title.md`.
+## ADR-NNN: Title
 
----
-
-## ADR-NNN: [Title of Decision]
-
-**Status:** [Proposed | Accepted | Deprecated | Superseded]  
-**Date:** [Date of decision]  
-**Deciders:** [Who was involved in the decision]
-
----
+- Status: Proposed (Accepted requires recorded approval)
+- Proposal date: YYYY-MM-DD
+- Suggested responsible role: role
+- Approver(s): pending
+- Approval date: pending
+- Design/code issue or reviewed PR: pending
+- Supersedes / related DEC: pending
 
 ### Context
 
-Describe the situation that requires a decision. Include:
+Describe the constraint and affected requirement IDs.
 
-- What problem or requirement drives this decision?
-- What constraints exist (technical, organizational, timeline)?
-- What is the current state, and why is it insufficient?
+### Proposed decision
 
-### Decision
+State the exact choice and where its canonical contract lives.
 
-State the decision clearly in one or two sentences.
+### Alternatives
 
-> We will use [chosen option] for [purpose].
-
-### Rationale
-
-Explain why this decision was made:
-
-- What are the key reasons for choosing this option?
-- How does it align with project goals, constraints, and quality attributes?
-- What trade-offs were accepted?
-
-### Alternatives Considered
-
-| Option                | Pros                                          | Cons                                          |
-| --------------------- | --------------------------------------------- | --------------------------------------------- |
-| [Option A]            | [Advantages]                                  | [Disadvantages]                               |
-| [Option B]            | [Advantages]                                  | [Disadvantages]                               |
-| **[Chosen Option]**   | **[Advantages]**                              | **[Accepted trade-offs]**                     |
+Explain viable alternatives and why this proposal selects one.
 
 ### Consequences
 
-Describe the outcomes of this decision:
+Record benefits, limitations, security boundaries and deployment costs.
 
-- **Positive:** What improvements or benefits does this decision bring?
-- **Negative:** What risks, trade-offs, or constraints does it introduce?
-- **Neutral:** What changes are required but have no clear positive or negative impact?
+### Affected documents and evidence
 
-### Related Decisions
-
-- [ADR-NNN: Related Decision Title](./adr-NNN-related-title.md)
-
-### References
-
-- [Relevant documentation or external resources]
-
----
-
-> **Guidance:**  
-> - Keep ADRs concise and focused on one decision.  
-> - Record the decision as close to the time it was made as practical.  
-> - Update the status if a decision is later superseded or deprecated.  
-> - Link to related ADRs when decisions are connected.  
-> - Add the new ADR to the [ADR Index](README.md).
+Link APIs, event/schema files, diagrams, tests and approval evidence. Verify all dependent contracts before setting Accepted.

@@ -1,0 +1,49 @@
+@startuml
+title Customer fee confirmation and booking — Proposed 2.0
+skinparam shadowing false
+|Customer (React or Flutter)|
+start
+:Enter delivery input;
+|Delivery API|
+:Authenticate Customer; validate QuoteInput;
+if (Authorized and valid?) then (yes)
+  :EstimateFee; persist 10-minute owner quote;
+else (no)
+  :Return 400/401/403;
+  stop
+endif
+|Customer (React or Flutter)|
+:Preview fee;
+if (Accept fee?) then (yes)
+  :CreateParcel with quoteId, total and key;
+else (no)
+  :Exit; no parcel created;
+  stop
+endif
+|Delivery API|
+:Atomic unique key reservation;
+if (Same key, different payload?) then (yes)
+  :409 conflict; rollback;
+  stop
+endif
+if (Committed identical duplicate?) then (yes)
+  :Return original 201 result;
+  stop
+endif
+if (Quote valid and owned?) then (yes)
+  :One transaction consumes quote and saves Created,
+  price snapshot, history, outbox and response;
+  :Return 201;
+else (no)
+  :409/403; rollback; request new quote if expired;
+  stop
+endif
+|Delivery outbox relay|
+:Publish StatusChanged after commit;
+if (Broker confirms?) then (yes)
+  :Mark outbox sent;
+else (no)
+  :Keep pending and retry with same eventId;
+endif
+stop
+@enduml

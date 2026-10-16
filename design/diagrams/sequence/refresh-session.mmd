@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant C as React or Flutter
+    participant I as Identity API
+    participant DB as Identity DB
+    C->>I: POST /api/v1/auth/refresh (Refresh)
+    I->>DB: Atomic hash lookup, family/active/expiry check and rotation
+    alt Valid refresh
+        DB-->>I: New session persisted, old token revoked
+        I-->>C: 200 access JWT and rotated refresh storage
+    else Reused/expired/disabled token
+        I->>DB: Revoke family on reuse
+        I-->>C: 401
+    end
+    C->>I: POST /api/v1/auth/logout (Logout), own session
+    I->>DB: Revoke own refresh family
+    I-->>C: 204
+    Note over C,I: Existing access JWT expires within 15 minutes, no Redis blacklist

@@ -1,0 +1,42 @@
+sequenceDiagram
+    autonumber
+    actor U as Customer
+    participant C as React or Flutter Customer
+    participant Y as YARP
+    participant D as Delivery API
+    participant DB as Delivery DB
+    participant R as Delivery outbox relay
+    participant B as RabbitMQ
+    U->>C: Enter delivery details
+    C->>Y: POST /api/v1/quotes (EstimateFee)
+    Y->>D: JWT and QuoteInput
+    D->>D: Validate Customer and input, calculate versioned fee
+    alt Invalid input or unauthorized quote request
+        D-->>C: 400 / 401 / 403, no quote or parcel
+    else Valid quote request
+    D->>DB: Store owner-bound 10 minute quote
+    D-->>C: 200 quoteId total expiresAt
+    C-->>U: Preview fee
+    alt Customer declines
+        U-->>C: Cancel preview
+        Note over C,DB: No parcel or delivery event
+    else Customer confirms
+        C->>Y: POST /api/v1/parcels (CreateParcel) + Idempotency-Key
+        Y->>D: quoteId and acceptTotal
+        D->>DB: Atomic unique principal/operation/key reservation
+        alt Same key different fingerprint / expired quote / unauthorized
+            D-->>C: 409 / 401 / 403, rollback
+        else Duplicate committed same-key request
+            DB-->>D: Original response
+            D-->>C: Original 201 and parcel
+        else First valid confirmation
+            D->>DB: One transaction: consume quote, parcel Created, price, history, outbox, response
+            DB-->>D: Commit
+            D-->>C: 201 parcel tracking version and Location
+            R->>DB: Read pending StatusChanged
+            R->>B: Publish with stable eventId, await confirmation
+            R->>DB: Mark sent after confirmation
+            Note over R,B: Broker outage leaves row pending, duplicate publish is possible
+        end
+    end
+    end

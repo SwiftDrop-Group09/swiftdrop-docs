@@ -1,193 +1,41 @@
 # Event Catalog
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · DEC-09 · MSG/DEL/SEC approval pending
 
-This document catalogs all domain events published and consumed within the SwiftDrop platform. Events are transmitted via RabbitMQ using MassTransit and follow the [transactional outbox](../architecture/data-architecture.md) pattern for reliable delivery.
+**StatusChanged v1 is the sole canonical status side-effect trigger**, including Created, reassignment, failure and cancellation. ParcelBooked/ParcelPickedUp/ParcelDelivered/DeliveryFailed and other specialized events are not published in this baseline. Any future analytics-only event must explicitly prohibit duplicate notification consumers.
 
----
+## Contract
 
-## 1. Event Flow Overview
+[JSON Schema](../api/contracts/status-changed-v1.schema.json) and [valid example](../api/contracts/status-changed-v1.example.json) define the complete body: eventId UUID, eventType StatusChanged, schemaVersion 1, occurredAt UTC, parcelId, parcelVersion monotonically increasing integer, nullable merchantId, status, nullable previousStatus (null only on creation), correlationId. No recipient identity/contact, address, exact GPS, courier name, proof URL, token, private notes or signing material belongs in this contract. Do not log whole payloads. The emitter reuses eventId across outbox retransmission; parcelVersion comes from the committed transaction.
 
-```mermaid
-flowchart LR
-    subgraph producers["Producers"]
-        delivery["Delivery Ops API"]
-        merchant["Merchant API"]
-        identity["Identity API"]
-    end
+## Producer → consumer → effect
 
-    subgraph broker["RabbitMQ (MassTransit)"]
-        exchange["Topic Exchanges"]
-    end
+| Producer | Message/exchange | Queue and binding | Concrete consumer | Effect / durable uniqueness |
+|---|---|---|---|---|
+| Delivery local outbox relay | `SwiftDrop.Contracts.V1:StatusChanged` (fanout) | `notification-status` receive exchange → same queue; bind message exchange to receive exchange | Worker StatusNotificationConsumer | Inbox `(consumer,eventId)`; notification `(eventId,recipientId,channel)`; webhook-dispatch job `(eventId,merchantId)` for merchant parcels |
+| Delivery local outbox relay | same message exchange | `delivery-realtime` receive exchange → same queue; bind message exchange to receive exchange | Delivery RealtimeStatusConsumer | Deduplicated wake-up; authorized subscribers receive newest safe snapshot/version |
 
-    subgraph consumers["Consumers"]
-        worker["Background Worker"]
-        merchantConsumer["Merchant API\n(Consumer)"]
-        notifier["Notification Handler"]
-    end
+Declare message entity name explicitly with MassTransit `SetEntityName("SwiftDrop.Contracts.V1:StatusChanged")`, receive endpoint names above and message-type bindings. All declared exchanges are durable fanout; queues are durable. There is no custom `swiftdrop.events` topic exchange or implicit routing-key contract. Bootstrap/consumer startup must declare topology before accepting demo writes. Each receive queue has `<queue>_error` for exhausted processing and `<queue>_skipped` for unhandled types; monitor both. Each service uses dedicated least-privilege broker credentials and only its permitted entities; the reference infra provides separate broker users for Delivery and Worker.
 
-    delivery -->|"ParcelBooked\nCourierAssigned\nParcelPickedUp\nParcelDelivered\nDeliveryFailed"| exchange
-    merchant -->|"MerchantApproved\nWebhookRegistered"| exchange
-    identity -->|"UserRegistered\nRoleChanged"| exchange
+The Worker consumes a status only once logically, then resolves the Customer owner recipient **ID**, when present, through Delivery NotificationContext (event/parcel/version verified) and persists notification/provider jobs. Merchant-originated parcels have no Customer owner session in this baseline; their recipient notification path is the merchant webhook, rather than an invented cross-domain owner lookup. In-app records and mock SMS provider attempts for Customer bookings are the Worker's responsibility; email is an optional additional provider. Merchant event gets a durable webhook-dispatch job; the Worker calls Merchant DispatchWebhook. Merchant deduplicates event and snapshots active subscription jobs in its own DB, then owns sending/retry. It never exposes signing secrets to Worker.
 
-    exchange --> worker
-    exchange --> merchantConsumer
-    exchange --> notifier
-```
+Set `PublishFaults = false` on these receive endpoints: processing errors move to the configured error queue and are monitored there, rather than implicitly publishing undeclared Fault message types outside the scoped broker entity permissions. Verify the exact pinned-runtime topology and binding permissions in integration tests.
 
----
+## Ordering, retry and replay
 
-## 2. Event Inventory
+Publish only after state/history/outbox commit. Mark an outbox row sent after broker confirmation; crash between confirmation and marking may republish. Consumer transaction commits inbox+jobs before ACK. Older duplicate parcel versions cannot regress SSE or dashboards. Important business actions are not triggered by public timeline text.
 
-### 2.1 Delivery Domain Events
+Broker processing: **one initial attempt plus three immediate retries** (1s, 5s, 15s), then `<queue>_error`; operator replay is audited and preserves eventId. No delayed broker retry is configured in this baseline. Replaying a broker message cannot bypass durable effect deduplication. This policy is separate from six-attempt **HTTP webhook** scheduling in [webhooks](merchant-webhooks.md). Provider and dispatch jobs are durably scheduled; a transient HTTP call failure must not cause a completed consumer transaction to generate duplicate jobs.
 
-| Event Name              | Producer            | Consumers                          | Trigger                                    |
-| ----------------------- | ------------------- | ---------------------------------- | ------------------------------------------ |
-| `ParcelBooked`          | Delivery Ops API    | Notification Handler               | Customer or merchant creates a booking     |
-| `CourierAssigned`        | Delivery Ops API    | Notification Handler               | Dispatcher assigns a courier to a parcel   |
-| `ParcelPickedUp`        | Delivery Ops API    | Background Worker, Notification    | Courier marks parcel as picked up          |
-| `StatusChanged`         | Delivery Ops API    | Background Worker, SSE Handler     | Any parcel status transition               |
-| `ParcelDelivered`       | Delivery Ops API    | Background Worker, Notification    | Courier completes delivery with proof      |
-| `DeliveryFailed`        | Delivery Ops API    | Background Worker, Notification    | Courier reports delivery failure           |
+## Version evolution
 
-### 2.2 Merchant Domain Events
+v1 schemas reject unexpected fields in documentation validation. Implementation consumers tolerate approved additive optional fields within v1; required field removals/type changes require a new message version and explicit dual-consumer migration. Unknown versions route to error/quarantine with alert and no side effects. Contract tests verify IDs, serialization, privacy and duplicate/reordered delivery. Actual broker topology/rendered management evidence is pending backend integration.
 
-| Event Name              | Producer            | Consumers                          | Trigger                                    |
-| ----------------------- | ------------------- | ---------------------------------- | ------------------------------------------ |
-| `MerchantRegistered`    | Merchant API        | Notification Handler               | New merchant submits registration          |
-| `MerchantApproved`      | Merchant API        | Notification Handler               | Admin approves a merchant application      |
-| `MerchantRejected`      | Merchant API        | Notification Handler               | Admin rejects a merchant application       |
-| `WebhookRegistered`     | Merchant API        | —                                  | Merchant configures a webhook endpoint     |
-| `OrderIngested`         | Merchant API        | —                                  | Merchant system submits an order           |
+## Transport reference
 
-### 2.3 Identity Domain Events
+[MassTransit RabbitMQ configuration](https://masstransit.massient.com/configuration/transports/rabbitmq) documents transport topology and publish/receive configuration. The explicit entity names, scopes and retry counts above are proposed SwiftDrop configuration that still requires a pinned-runtime test.
 
-| Event Name              | Producer            | Consumers                          | Trigger                                    |
-| ----------------------- | ------------------- | ---------------------------------- | ------------------------------------------ |
-| `UserRegistered`        | Identity API        | Notification Handler               | New user account created                   |
-| `UserDeactivated`       | Identity API        | Delivery Ops API                   | Admin deactivates a user account           |
-| `RoleChanged`           | Identity API        | —                                  | Admin assigns or revokes a role            |
 
----
+## Assignment notification acceptance
 
-## 3. Event Schemas
-
-### 3.1 ParcelBooked
-
-```json
-{
-  "eventId": "550e8400-e29b-41d4-a716-446655440000",
-  "eventType": "ParcelBooked",
-  "timestamp": "2026-10-15T10:30:00Z",
-  "data": {
-    "parcelId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "customerId": "f0e1d2c3-b4a5-6789-0123-456789abcdef",
-    "pickupAddress": "123 Main Street, Colombo 03",
-    "dropoffAddress": "456 Galle Road, Colombo 06",
-    "sizeCategory": "Medium",
-    "weightKg": 2.5,
-    "estimatedFee": 350.00,
-    "zoneId": "zone-colombo-central",
-    "merchantOrderId": null
-  }
-}
-```
-
-### 3.2 StatusChanged
-
-```json
-{
-  "eventId": "660e8400-e29b-41d4-a716-446655440001",
-  "eventType": "StatusChanged",
-  "timestamp": "2026-10-15T11:15:00Z",
-  "data": {
-    "parcelId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "fromStatus": "Assigned",
-    "toStatus": "PickedUp",
-    "changedBy": "courier-user-id",
-    "reason": null
-  }
-}
-```
-
-### 3.3 ParcelDelivered
-
-```json
-{
-  "eventId": "770e8400-e29b-41d4-a716-446655440002",
-  "eventType": "ParcelDelivered",
-  "timestamp": "2026-10-15T14:30:00Z",
-  "data": {
-    "parcelId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "courierId": "courier-user-id",
-    "deliveredAt": "2026-10-15T14:28:00Z",
-    "proofType": "Photo",
-    "proofRef": "proof/a1b2c3d4/delivery.jpg",
-    "merchantOrderId": "merchant-order-123"
-  }
-}
-```
-
-### 3.4 DeliveryFailed
-
-```json
-{
-  "eventId": "880e8400-e29b-41d4-a716-446655440003",
-  "eventType": "DeliveryFailed",
-  "timestamp": "2026-10-15T15:00:00Z",
-  "data": {
-    "parcelId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-    "courierId": "courier-user-id",
-    "failedAt": "2026-10-15T14:55:00Z",
-    "reasonCode": "RECIPIENT_UNAVAILABLE",
-    "notes": "No one available at delivery address after two attempts",
-    "attemptNumber": 1
-  }
-}
-```
-
----
-
-## 4. Exchange and Queue Topology
-
-MassTransit automatically manages RabbitMQ exchanges and queues based on consumer registrations.
-
-| Exchange Name                         | Type    | Bound Queues                           |
-| ------------------------------------- | ------- | -------------------------------------- |
-| `SwiftDrop.Events:ParcelBooked`       | Fanout  | `notification-handler`, `analytics`    |
-| `SwiftDrop.Events:StatusChanged`      | Fanout  | `webhook-worker`, `sse-handler`        |
-| `SwiftDrop.Events:ParcelDelivered`    | Fanout  | `webhook-worker`, `notification`       |
-| `SwiftDrop.Events:DeliveryFailed`     | Fanout  | `webhook-worker`, `notification`       |
-| `SwiftDrop.Events:MerchantApproved`   | Fanout  | `notification-handler`                 |
-
-### Error Handling Queues
-
-| Queue                          | Purpose                                              |
-| ------------------------------ | ---------------------------------------------------- |
-| `{consumer-name}_error`        | Messages that failed all retry attempts               |
-| `{consumer-name}_skipped`      | Messages skipped due to deserialization errors         |
-
----
-
-## 5. Event Conventions
-
-| Convention              | Standard                                                        |
-| ----------------------- | --------------------------------------------------------------- |
-| Event ID                | UUID v4, globally unique                                        |
-| Timestamp               | ISO 8601 in UTC (`Z` suffix)                                    |
-| Naming                  | PascalCase, past tense verb (`ParcelBooked`, `CourierAssigned`) |
-| Namespace               | `SwiftDrop.Events`                                              |
-| Idempotency             | Consumers use `eventId` for deduplication                       |
-| Versioning              | Additive changes only; new fields are optional                  |
-| Serialization           | JSON via `System.Text.Json`                                     |
-
----
-
-## References
-
-- [Integration Design](integration-design.md)
-- [Merchant Webhooks](merchant-webhooks.md)
-- [Data Architecture](../architecture/data-architecture.md)
-- [Technical Design](../architecture/technical-design.md)
+[Assignment pages 2–3](../requirements/sources/ead-group-assignment.pdf#page=2) require an event-consuming email service or mock SMS service. The proposed mandatory demo uses **mock SMS** with an observable provider attempt/output triggered by StatusChanged, plus persisted in-app records. Email may be added; a mock-email-only path or an in-app status screen alone does not establish this requirement. TC-N15/TC-REC-03/04 must execute the actual consumer/event path; all are still drafted, not passing.

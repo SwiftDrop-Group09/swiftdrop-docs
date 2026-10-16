@@ -1,238 +1,53 @@
-# Real-Time Tracking Integration
+# Real-Time Status Tracking
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · DEC-08 · One Delivery instance for demo
 
----
+Delivery hosts authenticated `GET /api/v1/parcels/{id}/events` through YARP; allow owner Customer, assigned Courier, Dispatcher/Admin. Public tracking uses only the safe snapshot endpoint/GraphQL and has no private SSE subscription. Flutter **Customer and Courier** share backend authorization; React provides all roles. There is no standalone realtime process or SignalR requirement.
 
-## 1. Overview
+## Browser and mobile authentication
 
-SwiftDrop provides real-time parcel tracking updates to connected clients using **Server-Sent Events (SSE)**. When a parcel's status changes, the update is pushed to all subscribed clients within seconds, enabling live tracking dashboards for customers, couriers, and dispatchers.
-
----
-
-## 2. Architecture
-
-```mermaid
-flowchart LR
-    subgraph backend["Backend"]
-        delivery["Delivery Ops API"]
-        db[("Delivery DB")]
-        broker["RabbitMQ"]
-    end
-
-    subgraph sse["SSE Infrastructure"]
-        sseHandler["SSE Connection Manager\n(In-Memory Hub)"]
-    end
-
-    subgraph clients["Connected Clients"]
-        customer["Customer\n(React SPA)"]
-        courier["Courier\n(Flutter App)"]
-        dispatcher["Dispatcher\n(React SPA)"]
-    end
-
-    delivery -->|"Status change"| db
-    delivery -->|"Publish StatusChanged"| broker
-    broker -->|"Consume"| sseHandler
-    sseHandler -->|"Push SSE event"| customer
-    sseHandler -->|"Push SSE event"| courier
-    sseHandler -->|"Push SSE event"| dispatcher
-```
-
----
-
-## 3. SSE Connection Protocol
-
-### 3.1 Establishing a Connection
-
-**Request:**
-
-```http
-GET /api/tracking/{parcelId}/events
-Authorization: Bearer {jwt}
-Accept: text/event-stream
-```
-
-**Response Headers:**
-
-```http
-HTTP/1.1 200 OK
-Content-Type: text/event-stream
-Cache-Control: no-cache
-Connection: keep-alive
-X-Accel-Buffering: no
-```
-
-### 3.2 SSE Event Format
-
-Each event follows the SSE specification:
-
-```
-id: evt-550e8400-e29b-41d4
-event: status_changed
-data: {"parcelId":"abc-123","status":"PickedUp","previousStatus":"Assigned","timestamp":"2026-10-15T11:15:00Z","changedBy":"courier-id"}
-
-```
-
-### 3.3 Event Types
-
-| Event Type              | Trigger                                      | Data Fields                                |
-| ----------------------- | -------------------------------------------- | ------------------------------------------ |
-| `status_changed`        | Parcel status transition                     | parcelId, status, previousStatus, timestamp |
-| `courier_assigned`      | Courier assigned to parcel                   | parcelId, courierId, courierName, timestamp |
-| `delivery_completed`    | Delivery finished with proof                 | parcelId, deliveredAt, proofType           |
-| `delivery_failed`       | Delivery attempt failed                      | parcelId, reasonCode, notes, timestamp     |
-| `heartbeat`             | Keepalive (every 30s)                        | timestamp                                  |
-
-### 3.4 Heartbeat
-
-The server sends a comment-based keepalive every 30 seconds to prevent proxy/load balancer timeouts:
-
-```
-: keepalive 2026-10-15T11:15:30Z
-
-```
-
-### 3.5 Reconnection
-
-If the connection drops, the SSE specification's built-in reconnection applies:
-
-```
-retry: 5000
-```
-
-The `retry` field instructs the client to wait 5 seconds before reconnecting. On reconnection, the client sends the last received `id` via the `Last-Event-ID` header, and the server replays any missed events.
-
----
-
-## 4. Connection Lifecycle
-
-```mermaid
-sequenceDiagram
-    actor Client
-    participant Gateway as API Gateway
-    participant SSE as SSE Handler
-    participant Broker as RabbitMQ
-
-    Client->>Gateway: GET /api/tracking/{parcelId}/events<br/>Authorization: Bearer {jwt}
-    Gateway->>SSE: Forward (long-lived connection)
-
-    SSE->>SSE: Validate JWT, extract user_id
-    SSE->>SSE: Verify user has access to parcel
-    SSE->>SSE: Register connection for parcel_id
-
-    SSE-->>Client: HTTP 200, Content-Type: text/event-stream
-    SSE-->>Client: retry: 5000
-
-    loop While connected
-        Note over SSE: Heartbeat every 30s
-        SSE-->>Client: : keepalive {timestamp}
-    end
-
-    Note over Broker: Parcel status changes
-    Broker->>SSE: StatusChanged event (parcelId)
-    SSE->>SSE: Find connections for parcelId
-    SSE-->>Client: event: status_changed<br/>data: {status details}
-
-    Note over Client: Connection dropped
-    Client->>Gateway: Reconnect with Last-Event-ID
-    Gateway->>SSE: Forward
-    SSE->>SSE: Replay events since Last-Event-ID
-    SSE-->>Client: Missed events (if any)
-```
-
----
-
-## 5. Authorization
-
-| Rule                                      | Enforcement                                           |
-| ----------------------------------------- | ----------------------------------------------------- |
-| Valid JWT required                         | SSE handler validates token before accepting connection |
-| Customer can only track their own parcels  | `parcel.customer_id == jwt.user_id`                   |
-| Courier can track their assigned parcels   | `assignment.courier_id == jwt.user_id`                |
-| Dispatcher can track all parcels in zone   | Role-based access with zone filtering                 |
-| Admin can track any parcel                 | Role-based access, no parcel restriction              |
-| Merchant can track their order parcels     | `parcel.merchant_order_id` belongs to merchant        |
-
----
-
-## 6. Dispatcher Dashboard: Multi-Parcel Tracking
-
-Dispatchers need to monitor multiple parcels simultaneously. A separate SSE endpoint supports zone-level subscriptions:
-
-**Request:**
-
-```http
-GET /api/tracking/zones/{zoneId}/events
-Authorization: Bearer {jwt}
-Accept: text/event-stream
-```
-
-This endpoint streams events for all parcels within the specified delivery zone, enabling a real-time dispatch dashboard.
-
----
-
-## 7. Client Implementation Notes
-
-### 7.1 React SPA (EventSource API)
+Native browser EventSource cannot set an arbitrary Authorization header. React uses `fetch` streaming with Bearer access token and AbortController. Do not place long-lived tokens into query strings. Browser refresh tokens use a Secure HttpOnly same-site cookie; access token stays in memory. Flutter uses a streaming HTTP client with Bearer header and platform secure storage for refresh token. Gateway enforces a known-origin CORS policy; preflight and HTTPS must be configured for the actual client origin.
 
 ```javascript
-const eventSource = new EventSource(
-  `/api/tracking/${parcelId}/events`,
-  { headers: { Authorization: `Bearer ${token}` } }
-);
-
-eventSource.addEventListener('status_changed', (event) => {
-  const data = JSON.parse(event.data);
-  updateTrackingUI(data);
-});
-
-eventSource.addEventListener('delivery_completed', (event) => {
-  const data = JSON.parse(event.data);
-  showDeliveryConfirmation(data);
-  eventSource.close();
-});
-
-eventSource.onerror = () => {
-  // Browser handles automatic reconnection via retry field
-  console.log('SSE connection lost, reconnecting...');
-};
+// openEvents and parseSse are application adapters, not native EventSource options.
+async function trackParcel(baseUrl, parcelId, token, signal, apply) {
+  const headers = { Authorization: `Bearer ${token}` };
+  const response = await fetch(`${baseUrl}/api/v1/parcels/${encodeURIComponent(parcelId)}/events`, {
+    headers, signal, cache: "no-store"
+  });
+  if (!response.ok || !response.body) throw new Error(`SSE ${response.status}`);
+  // Start consuming immediately, buffering snapshots until current state is fetched.
+  const buffered = [];
+  let ready = false;
+  let version = 0;
+  const accept = value => {
+    if (!ready) buffered.push(value);
+    else if (value.version > version) { version = value.version; apply(value); }
+  };
+  const consume = parseSse(response.body, accept, signal);
+  const snapshotResponse = await fetch(`${baseUrl}/api/v1/parcels/${encodeURIComponent(parcelId)}`, { headers, signal, cache: "no-store" });
+  if (!snapshotResponse.ok) { await response.body.cancel().catch(() => {}); throw new Error(`Snapshot ${snapshotResponse.status}`); }
+  const current = await snapshotResponse.json();
+  version = current.version;
+  apply(current);
+  ready = true;
+  buffered.sort((a, b) => a.version - b.version).forEach(accept);
+  await consume; // parseSse must handle chunked UTF-8, multiline data and comments.
+}
 ```
 
-### 7.2 Flutter (SSE Client)
+This is a control-flow example; `parseSse` requires a tested incremental SSE parser, bounded buffer and caller cancellation/retry handling. On snapshot failure abort the whole connection through the caller's controller; do not leave an unobserved consume promise. On 401 refresh once and reconnect; on 403/404 stop; on network loss retry with jittered 1s→30s backoff. Do not deploy the sketch as a complete client library.
 
-```dart
-final client = SseClient(
-  url: '/api/tracking/$parcelId/events',
-  headers: {'Authorization': 'Bearer $token'},
-);
+## Snapshot and reconnect contract
 
-client.stream.listen((SseEvent event) {
-  if (event.event == 'status_changed') {
-    final data = jsonDecode(event.data);
-    updateTrackingState(data);
-  }
-});
-```
+Connection registration occurs before its initial DB snapshot. Send `event: snapshot`, `id: <parcelId>:<version>` and `data: {id,status,version,lastUpdatedAt}` only; an authorized client fetches private details separately. Subsequent broker wake-ups read the latest DB status, not an older event payload. Keep a per-connection maximum version; apply only newer versions. Send heartbeat comments every 15s and a DB snapshot reconciliation every 30s so a lost wake-up cannot permanently hide a committed status. Terminate at token expiry and recheck assignment/ownership at each snapshot/wake-up; reassignment closes old courier access.
 
----
+On every reconnect subscribe/register first and fetch an authorized current snapshot while buffering updates, then apply only versions newer than the snapshot. This closes the refetch→subscribe gap. `Last-Event-ID` is informational; **no durable missed-event replay is promised**. Clients obtain timeline history by authenticated GetParcel if needed. Server sends no-cache/no-transform, disables proxy buffering, flushes heartbeats and bounds slow-client queues (close/refetch on overflow). Status target ≤2s is a test goal, not a measured result.
 
-## 8. Scalability Considerations
+## Broker and scaling boundary
 
-| Concern                        | Approach                                                          |
-| ------------------------------ | ----------------------------------------------------------------- |
-| Connection limits              | Each SSE connection holds a TCP connection; monitor connection count |
-| Memory                         | In-memory connection registry; bounded by max concurrent users     |
-| Multi-instance deployment      | RabbitMQ distributes events to all API instances; each manages its own connections |
-| Connection cleanup             | Detect disconnected clients via heartbeat failures                |
-| Proxy timeouts                 | Heartbeat keepalive prevents YARP/nginx from closing idle connections |
+Delivery's `delivery-realtime` queue receives a copy of StatusChanged independently of Worker `notification-status`. One queue with multiple consumers load-balances messages; it does **not** send each event to every Delivery replica. The demo therefore uses one Delivery instance. Horizontal scaling requires unique per-instance fanout subscriptions or an approved pub/sub backplane, plus auth/reconnection tests across replicas. Redis/GPS/SignalR are deferred additional scope. [Event topology](event-catalog.md) and [service inventory](../architecture/service-catalog.md) define the same ownership.
 
----
+## Protocol reference
 
-## References
-
-- [Integration Design](integration-design.md)
-- [Event Catalog](event-catalog.md)
-- [Sequence Diagrams](../design/diagrams/sequence/README.md)
-- [WebSocket Protocol](../api/websocket-protocol.md)
+[WHATWG EventSource interface](https://html.spec.whatwg.org/multipage/server-sent-events.html#the-eventsource-interface) defines URL/withCredentials construction, without arbitrary request headers. Authenticated fetch streaming and the snapshot recovery policy are SwiftDrop’s proposed client design.

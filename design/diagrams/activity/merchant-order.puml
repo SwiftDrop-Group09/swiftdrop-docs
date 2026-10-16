@@ -1,0 +1,41 @@
+@startuml
+title Secured merchant order and reconciliation — Proposed 2.0
+skinparam shadowing false
+|Merchant system|
+start
+:SubmitMerchantOrder with key and externalOrderId;
+|Merchant API|
+if (Key active, business Approved, scope and input valid?) then (yes)
+  :Atomic unique merchant/order job + fingerprint;
+else (no)
+  :Return 400/401/403;
+  stop
+endif
+if (Changed duplicate?) then (yes)
+  :409 conflict;
+  stop
+endif
+:Return 202 job Location; parcel IDs null;
+|Merchant inbox processor|
+:Claim durable Accepted/Retrying job;
+:CreateBooking with stable merchant/order identity;
+if (Known successful result?) then (yes)
+  :Persist Created with parcel/tracking;
+else (no)
+  if (Permanent domain rejection?) then (yes)
+    :Persist Failed with safe reason;
+  else (unknown outcome)
+    :Persist Retrying and nextRetryAt;
+    :GetBookingByExternalOrder;
+    if (Parcel found?) then (yes)
+      :Persist Created;
+    else (NotFound)
+      :Schedule same-key CreateBooking retry;
+    endif
+  endif
+endif
+|Merchant system|
+:GetMerchantOrder with owning credential;
+:Observe Accepted/Retrying/Created/Failed;
+stop
+@enduml

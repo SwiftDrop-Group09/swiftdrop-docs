@@ -1,0 +1,772 @@
+[
+  {
+    "id": "TC-C01",
+    "requirements": [
+      "FR-C01"
+    ],
+    "preconditions": "No user exists; local auth fixture",
+    "steps": "Register valid Customer; login; refresh twice with old token; logout own family",
+    "expected": "201 Customer, valid login; refresh rotates; reuse revokes family; logout 204 and no refresh; access expiry bound documented; inspect Identity storage to verify salted Argon2id password hash, no plaintext password/log leakage",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C02",
+    "requirements": [
+      "FR-C02"
+    ],
+    "preconditions": "Configured test Google issuer/JWKS and platform clients",
+    "steps": "Exchange valid/expired/wrong-audience tokens and local-email collision; repeat known subject",
+    "expected": "Same active subject maps same user; bad token 401; collision 409 until verified link; no role escalation",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C03",
+    "requirements": [
+      "FR-C03"
+    ],
+    "preconditions": "Two Customer accounts",
+    "steps": "Read/update own name/phone/address; try roles and another user ID",
+    "expected": "Own fields persist; role/identity override rejected; foreign profile not exposed",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C04",
+    "requirements": [
+      "FR-C04"
+    ],
+    "preconditions": "Customer has valid own quote",
+    "steps": "Confirm total with idempotency key, then repeat and alter payload",
+    "expected": "One Created parcel, immutable price, history/outbox; duplicate original response; changed body 409",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C05",
+    "requirements": [
+      "FR-C05"
+    ],
+    "preconditions": "Seed base 450/perKg 60, weight 2.5",
+    "steps": "Estimate; decline; confirm after 10-minute expiry; quote again",
+    "expected": "LKR 540.00; decline creates no parcel/event; expired quote 409; new fee must be reconfirmed",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C06",
+    "requirements": [
+      "FR-C06"
+    ],
+    "preconditions": "Owner, stranger, anonymous and current assigned courier fixtures",
+    "steps": "Track anonymously; open authorized SSE; mutate status; reconnect; query private fields anonymously",
+    "expected": "Safe public fields only; owner gets newest version within target; 401/404 private denial and no leaks",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C07",
+    "requirements": [
+      "FR-C07"
+    ],
+    "preconditions": "Owned and foreign parcels, more than one page",
+    "steps": "List own history using page/pageSize and status filter",
+    "expected": "Stable sorted pages contain only own records; no duplicate/missing page boundary at fixed dataset",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-C08",
+    "requirements": [
+      "FR-C08"
+    ],
+    "preconditions": "Owned Delivered parcel plus foreign/unfinished parcel",
+    "steps": "Download receipt in React and Flutter; repeat foreign/unfinished requests",
+    "expected": "Valid PDF/snapshot total for owner; foreign 404; unfinished 409; private/no-store and no raw URL",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M01",
+    "requirements": [
+      "FR-M01"
+    ],
+    "preconditions": "Signed-in applicant",
+    "steps": "Register business, attempt client-supplied Approved",
+    "expected": "Pending business only; self-approval denied; own applicant can read status",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M02",
+    "requirements": [
+      "FR-M02"
+    ],
+    "preconditions": "Pending business and non-Admin fixture",
+    "steps": "Non-Admin attempts approval then Admin approves/rejects",
+    "expected": "403 without mutation for non-Admin; audited allowed status and reason for Admin; keys blocked until Approved",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M03",
+    "requirements": [
+      "FR-M03"
+    ],
+    "preconditions": "Approved Merchant and key-management UI",
+    "steps": "Generate scoped key, list metadata, revoke, then use revoked key",
+    "expected": "Raw key visible once, salted hash stored; metadata no secret/hash; next request rejected after revoke",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M04",
+    "requirements": [
+      "FR-M04"
+    ],
+    "preconditions": "Approved merchant key, accepted tariff version",
+    "steps": "Submit order; duplicate concurrently; poll durable job through timeout recovery",
+    "expected": "202 durable job; no premature tracking ID; eventual Created or explicit Failed/Retrying; one logical parcel",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M05",
+    "requirements": [
+      "FR-M05"
+    ],
+    "preconditions": "Approved business and controlled public HTTPS receiver",
+    "steps": "Register webhook; emit delivery status; verify HMAC and inspect own attempts",
+    "expected": "One intended job/event/subscription; exact timestamp.raw-byte HMAC; attempts scoped and logged with safe fields",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M06",
+    "requirements": [
+      "FR-M06"
+    ],
+    "preconditions": "Two businesses with mixed jobs and terminal parcel outcomes",
+    "steps": "Open own dashboard with explicit date range; force status reconciliation",
+    "expected": "Own order/status/pending counts and rates match fixtures; lastRefreshedAt indicates freshness; other business absent",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-M07",
+    "requirements": [
+      "FR-M07"
+    ],
+    "preconditions": "Own/foreign Accepted, Retrying, Created, Failed jobs",
+    "steps": "Poll each state by owner key/JWT then foreign key",
+    "expected": "States/parcel references truthful; foreign 404; successful parcel recovered after lost response",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-R01",
+    "requirements": [
+      "FR-R01"
+    ],
+    "preconditions": "Two provisioned Courier profiles with previous-day, today and tomorrow active assignments in configured Asia/Colombo service timezone",
+    "steps": "Load Flutter daily manifest without date, then selected date/includeOverdue=false; compare other Courier and foreign parcel requests",
+    "expected": "Default today plus active overdue work only; future work absent; selected-day filter and serviceDate/isOverdue correct; current Courier scope forced and foreign 404",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-R02",
+    "requirements": [
+      "FR-R02"
+    ],
+    "preconditions": "Assigned Courier with current version",
+    "steps": "Progress PickedUp \u2192 InTransit \u2192 OutForDelivery with nonblank notes; repeat/stale/direct Delivered and missing-note attempts",
+    "expected": "Legal writes persist private note/history/outbox once; missing note 400 with no effects; invalid repeat, stale version and direct Delivered 409; notes absent from public/event DTOs",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-R03",
+    "requirements": [
+      "FR-R03"
+    ],
+    "preconditions": "OutForDelivery assigned parcel, valid photo/signature",
+    "steps": "Complete proof; deny foreign courier, malformed/oversized upload; simulate storage/DB failure",
+    "expected": "Delivered only after stored valid proof and DB commit; failures keep prior state; unreferenced upload cleaned",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-R04",
+    "requirements": [
+      "FR-R04"
+    ],
+    "preconditions": "Currently assigned active parcel",
+    "steps": "Fail with/without required reason, then attempt retry transition",
+    "expected": "Missing code 400; valid Failed terminal with history/outbox; undocumented redelivery rejected",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-R05",
+    "requirements": [
+      "FR-R05"
+    ],
+    "preconditions": "Courier has completed/failed/foreign records",
+    "steps": "Page CourierHistory",
+    "expected": "Only assignments historically belonging to caller; canonical status and stable pages",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-D01",
+    "requirements": [
+      "FR-D01"
+    ],
+    "preconditions": "Created and already Assigned parcels",
+    "steps": "Dispatcher queries ListParcels status=Created",
+    "expected": "Only unassigned queue; Customer cannot see global queue",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-D02",
+    "requirements": [
+      "FR-D02"
+    ],
+    "preconditions": "Active on-duty operational Courier profiles with zone membership and known capacity, plus full/inactive/unprovisioned fixtures",
+    "steps": "Assign available courier, then race capacity assignments on full courier",
+    "expected": "One valid versioned service-date assignment; rejected capacity/inactive/unprovisioned/zone requests have no effects; race 409; configured capacity never exceeded",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-D03",
+    "requirements": [
+      "FR-D03"
+    ],
+    "preconditions": "Known active assignments and configured capacities",
+    "steps": "Read workload then complete/fail parcel",
+    "expected": "Counts update from DB assignments; Courier/Customer cannot read full fleet",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-D04",
+    "requirements": [
+      "FR-D04"
+    ],
+    "preconditions": "Assigned pre-pickup parcel and two couriers",
+    "steps": "Race reassignment with old courier pickup, using same expectedVersion",
+    "expected": "One commit; loser 409 or ownership 404; exactly one active assignment; no post-pickup reassignment",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-D05",
+    "requirements": [
+      "FR-D05"
+    ],
+    "preconditions": "Multiple zones/statuses and date fixtures",
+    "steps": "Request zone summary for range",
+    "expected": "Per-zone/status counts match scoped records; forbidden role rejected",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A01",
+    "requirements": [
+      "FR-A01"
+    ],
+    "preconditions": "Admin and Customer, last-Admin fixture",
+    "steps": "Create/read/update/deactivate user; attempt as Customer",
+    "expected": "Audited Admin changes; no hashes exposed; Customer 403; disabled login/refresh denied",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A02",
+    "requirements": [
+      "FR-A02"
+    ],
+    "preconditions": "Admin and active roles",
+    "steps": "Change roles, attempt remove last Admin; retry downstream with old JWT after expiry",
+    "expected": "Audited approved roles; last Admin protected; stale role no longer accepted after \u226415-minute bound",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A03",
+    "requirements": [
+      "FR-A03"
+    ],
+    "preconditions": "Pending merchant, Admin and applicant",
+    "steps": "Review list then approve/reject; attempt as applicant",
+    "expected": "Admin-only status change; business reason/audit; applicant cannot approve self",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A04",
+    "requirements": [
+      "FR-A04"
+    ],
+    "preconditions": "Admin zone config",
+    "steps": "Create/update zone; test overlaps and non-Admin",
+    "expected": "Valid versioned zones; overlap rejected; unauthorized 403; no silent invalid routing",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A05",
+    "requirements": [
+      "FR-A05"
+    ],
+    "preconditions": "Admin pricing config and earlier quote",
+    "steps": "Version pricing tier; confirm still-valid previous quote",
+    "expected": "Versioned tariff and old immutable quote honored; invalid negative fee rejected",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A06",
+    "requirements": [
+      "FR-A06"
+    ],
+    "preconditions": "Delivered, Failed, Cancelled histories across UTC boundaries",
+    "steps": "Request explicit date report and zero-outcome report",
+    "expected": "Daily counts, denominator delivered+failed, rates or zero match fixtures; Cancelled separate; non-Admin 403",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-A07",
+    "requirements": [
+      "FR-A07"
+    ],
+    "preconditions": "Audit events and redacted credentials",
+    "steps": "Read audit as Admin then Customer; inspect payloads",
+    "expected": "Admin-only safe action/resource/result records; no secrets/password/request bodies",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N01",
+    "requirements": [
+      "NFR-01"
+    ],
+    "preconditions": "API timing load fixture",
+    "steps": "Warm normal-load APIs; collect \u22651000 requests and p95 excluding SSE connection lifetime",
+    "expected": "p95 \u2264500ms; publish dataset, concurrency and hardware; no measured result assumed",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N02",
+    "requirements": [
+      "NFR-02"
+    ],
+    "preconditions": "Connected authenticated SSE clients",
+    "steps": "Commit status and timestamp receipt using synchronized clocks",
+    "expected": "Visible snapshot within 2s under specified load; record commit-to-client distribution",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N03",
+    "requirements": [
+      "NFR-03"
+    ],
+    "preconditions": "All mandatory clients seeded",
+    "steps": "Run 50 concurrent authorized users through defined workflow mix",
+    "expected": "No lost/duplicated booking or unauthorized data; publish errors/latency/resource use",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N04",
+    "requirements": [
+      "NFR-04"
+    ],
+    "preconditions": "Configured non-loopback ingress and device trust",
+    "steps": "Try HTTP, invalid cert and HTTPS; inspect TLS and cookies",
+    "expected": "External HTTPS TLS1.2+ with valid trust; reject plaintext nonlocal; Secure cookies",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N05",
+    "requirements": [
+      "NFR-05"
+    ],
+    "preconditions": "Local/Google and refresh session fixtures",
+    "steps": "Verify app expiry, signature/audience, replay, logout and disabled account",
+    "expected": "JWT \u2264900s; fresh tokens refused after revocation; existing access bound explicit",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N06",
+    "requirements": [
+      "NFR-06"
+    ],
+    "preconditions": "Merchant key fixture and DB access for test",
+    "steps": "Create key; inspect rows/logs; revoke and use next request",
+    "expected": "Only salted digest stored, one-time raw display; no credential logs; revoked key fails",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N07",
+    "requirements": [
+      "NFR-07"
+    ],
+    "preconditions": "Fixed raw webhook bytes and secret",
+    "steps": "Verify valid signature, alter body/timestamp, verify later retry",
+    "expected": "Timestamp.rawBytes HMAC only; invalid/replayed/stale request rejected; fresh retry succeeds",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N08",
+    "requirements": [
+      "NFR-08"
+    ],
+    "preconditions": "Role/owner matrix across REST GraphQL and internal calls",
+    "steps": "Attempt missing/wrong JWT, foreign merchant/courier and key scopes",
+    "expected": "401/403/404 as defined; no data/side effects; no bypass through GraphQL",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N09",
+    "requirements": [
+      "NFR-09"
+    ],
+    "preconditions": "Mounted secret/key fixture",
+    "steps": "Inspect secret columns, mounts, logs and backups; try Worker key access",
+    "expected": "AEAD ciphertext/key version; no plaintext Git/log values; Worker cannot decrypt Merchant keys",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N10",
+    "requirements": [
+      "NFR-10"
+    ],
+    "preconditions": "Parallel request barrier and fingerprint fixture",
+    "steps": "Send 20 identical concurrent booking/order requests then changed payload",
+    "expected": "One logical resource, original response on duplicates, changed payload 409",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N11",
+    "requirements": [
+      "NFR-11"
+    ],
+    "preconditions": "Broker can be disconnected during transaction",
+    "steps": "Commit status during outage; crash relay after confirm; restore",
+    "expected": "History/state/outbox persist; eventually publishes; duplicate consumer has one intended effect",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N12",
+    "requirements": [
+      "NFR-12"
+    ],
+    "preconditions": "Deterministic clock and injected HTTP transport",
+    "steps": "Return 500/429 then success and all-six-fail; advance schedule",
+    "expected": "Six max automatic attempts at 0/1/6/21/51/111m minima, Retry-After honored, fresh signature each",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N13",
+    "requirements": [
+      "NFR-13"
+    ],
+    "preconditions": "Failed webhook job belonging to business A",
+    "steps": "Inspect/replay as A, then B; inspect audit",
+    "expected": "Own safe attempts and audited replay only; foreign 404; stable event ID retained",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N14",
+    "requirements": [
+      "NFR-14"
+    ],
+    "preconditions": "Four initialized DBs and app roles",
+    "steps": "Connect using each role then attempt other three databases",
+    "expected": "Own DB works; foreign connection/SQL denied; no shared credentials",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N15",
+    "requirements": [
+      "NFR-15"
+    ],
+    "preconditions": "Pinned broker/MassTransit integration fixture",
+    "steps": "Inspect exchanges/queues; publish duplicate StatusChanged; observe actual mock SMS consumer record/provider fixture; fail consumer",
+    "expected": "Declared fanout and separate queues; mock SMS triggered once per intended recipient; inbox/job dedup; 3 immediate retries then error on processing failure",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N16",
+    "requirements": [
+      "NFR-16"
+    ],
+    "preconditions": "Empty Docker machine and real source images/migrations",
+    "steps": "Start Compose, check all four DB migrations, readiness and mandatory smoke flows",
+    "expected": "All required components healthy; commands/source/tool versions attached; no placeholder images",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N17",
+    "requirements": [
+      "NFR-17"
+    ],
+    "preconditions": "Business logic unit suite and Coverlet report",
+    "steps": "Collect line and branch coverage using documented exclusions",
+    "expected": "Business-logic line coverage \u226580%; branch separately reported; CI artifact/commit/date required",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N18",
+    "requirements": [
+      "NFR-18"
+    ],
+    "preconditions": "React browser fixture",
+    "steps": "Test public tracking and mandatory screens at 320px, tablet and desktop widths",
+    "expected": "No horizontal overflow; safe tracking and receipt/dashboard/report controls usable",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N19",
+    "requirements": [
+      "NFR-19"
+    ],
+    "preconditions": "Validation/auth/domain/dependency failures",
+    "steps": "Invoke representative 400/401/403/404/409/422/429/503 outcomes",
+    "expected": "Stable safe ProblemDetails/GraphQL codes/correlation; no secret/private field leakage",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-N20",
+    "requirements": [
+      "NFR-20"
+    ],
+    "preconditions": "Flutter Customer/Courier on API 26+",
+    "steps": "Authenticate, Customer booking/tracking/receipt, Courier status/proof, network reconnect",
+    "expected": "Both personas complete authorized flows on recorded emulator/device/API level",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-01",
+    "requirements": [
+      "FR-C06",
+      "NFR-08"
+    ],
+    "preconditions": "Anonymous REST/GraphQL fixture",
+    "steps": "Query safe tracking plus all attempted private nested fields/aliases/fragments",
+    "expected": "Only allowlisted fields serialize; GraphQL rejects private fields; no addresses/phone/proof/courier/precise GPS",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-02",
+    "requirements": [
+      "FR-R02",
+      "FR-R03",
+      "NFR-08"
+    ],
+    "preconditions": "Courier A/B and assigned parcel",
+    "steps": "A attempts B status/POD; Dispatcher attempts Courier operational action",
+    "expected": "404 for foreign courier, 403 for wrong role; DB/history/outbox/storage unchanged",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-03",
+    "requirements": [
+      "FR-M04",
+      "FR-M06",
+      "NFR-08"
+    ],
+    "preconditions": "Businesses A/B with active keys",
+    "steps": "A attempts B job, webhook attempts, dashboard and caller-supplied merchantId",
+    "expected": "404/403 or invalid-field rejection; no cross-business results",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-04",
+    "requirements": [
+      "FR-M05",
+      "NFR-07"
+    ],
+    "preconditions": "Webhook raw bytes, synchronized fake clock",
+    "steps": "Modify body, stale/future timestamp, replay event after first accepted request",
+    "expected": "HMAC/tolerance reject tampering; valid duplicate is 2xx with no repeated business effect",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-05",
+    "requirements": [
+      "FR-C02",
+      "NFR-08"
+    ],
+    "preconditions": "Existing local email with no provider link",
+    "steps": "Exchange matching-email Google ID token; try subject already owned; reauthenticate and link",
+    "expected": "Collision rejected until verified own-account link; no automatic email takeover",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-06",
+    "requirements": [
+      "FR-M05",
+      "NFR-09"
+    ],
+    "preconditions": "Injected DNS/HTTP client and URL validator",
+    "steps": "Try localhost, private/metadata, IPv6-mapped, rebinding, redirect and mixed safe/unsafe answers",
+    "expected": "Rejected at registration and send; no internal outbound request; safe log code only",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-07",
+    "requirements": [
+      "FR-C08",
+      "FR-R03",
+      "NFR-08"
+    ],
+    "preconditions": "Owner/stranger and private proof/receipt",
+    "steps": "Attempt raw object/public downloads, expired auth, wrong-owner downloads",
+    "expected": "Private bucket denies anonymous; service rejects foreign, no raw public URL; valid owner stream works",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-SEC-08",
+    "requirements": [
+      "FR-A02",
+      "FR-M03",
+      "NFR-05"
+    ],
+    "preconditions": "Active JWT and merchant key",
+    "steps": "Change role/deactivate user; try refresh then old JWT after expiry; revoke key",
+    "expected": "No new sessions; old access rejected within bound; key rejected on immediate next Merchant request",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-01",
+    "requirements": [
+      "FR-C04",
+      "NFR-10"
+    ],
+    "preconditions": "20 parallel threads, same quote/key",
+    "steps": "Synchronize identical requests then changed fingerprint; repeat committed key after quote expiry",
+    "expected": "Exactly one parcel/snapshot/outbox; duplicates identical response; changed fingerprint 409",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-02",
+    "requirements": [
+      "FR-M04",
+      "FR-M07",
+      "NFR-10"
+    ],
+    "preconditions": "Delivery commits but gRPC response is dropped",
+    "steps": "Poll job; reconcile by external order; retry with rotated API key",
+    "expected": "Job eventually Created and same parcel; no duplicate after key rotation; status never falsely Failed",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-03",
+    "requirements": [
+      "FR-R02",
+      "NFR-11"
+    ],
+    "preconditions": "Broker disconnected at commit",
+    "steps": "Update status then restart relay/broker; crash after publisher confirmation",
+    "expected": "Committed state/outbox recover; repeated event ID; unique downstream jobs",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-04",
+    "requirements": [
+      "FR-M05",
+      "NFR-11"
+    ],
+    "preconditions": "Duplicate/reordered StatusChanged messages",
+    "steps": "Deliver event twice and lower parcelVersion later; replay from broker error queue",
+    "expected": "One notification/recipient/channel and webhook/subscription; no SSE status regression",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-05",
+    "requirements": [
+      "FR-D04",
+      "FR-R02",
+      "NFR-08"
+    ],
+    "preconditions": "Concurrent assignment/status transactions",
+    "steps": "Race reassign versus pickup with same expectedVersion",
+    "expected": "Only one wins; valid capacity/current assignment, losing 409/404; no unauthorized transition",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-06",
+    "requirements": [
+      "FR-R03",
+      "NFR-11"
+    ],
+    "preconditions": "Object store and DB fault injection",
+    "steps": "Fail object write then fail DB commit after stored proof; retry same key; run cleanup",
+    "expected": "No false Delivered; one final event after valid commit; referenced proof retained, orphan removed after 24h",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-07",
+    "requirements": [
+      "FR-M05",
+      "NFR-12"
+    ],
+    "preconditions": "Deterministic clock and HTTP mock",
+    "steps": "Return 429 Retry-After, 500, timeout then 200; test all-six failure",
+    "expected": "Exact attempt policy; fresh timestamp/HMAC; stable event ID; durable failure/attempt records",
+    "status": "Drafted",
+    "evidence": null
+  },
+  {
+    "id": "TC-REC-08",
+    "requirements": [
+      "FR-C06",
+      "NFR-02"
+    ],
+    "preconditions": "React fetch SSE and Flutter streaming fixture",
+    "steps": "Disconnect during status commits; reconnect/subscribe then snapshot; expire token; reassign courier",
+    "expected": "Latest authorized version recovered; buffering closes race; old courier stream stops; no cursor replay claim",
+    "status": "Drafted",
+    "evidence": null
+  }
+]

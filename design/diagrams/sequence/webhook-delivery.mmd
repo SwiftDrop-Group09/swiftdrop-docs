@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant W as Notification Worker
+    participant M as Merchant API and dispatcher
+    participant DB as Merchant DB
+    participant E as Merchant HTTPS receiver
+    W->>M: POST /internal/v1/webhook-dispatches (DispatchWebhook)
+    M->>M: Validate worker service JWT and event scope
+    M->>DB: Unique event+subscription jobs, encrypted key version
+    M-->>W: 202 durable acceptance, no secrets
+    loop Initial plus five retries maximum
+        M->>DB: Claim due job and decrypt owner-controlled secret
+        M->>M: Validate public HTTPS DNS/IP and pin connection, no redirects
+        alt Unsafe destination
+            M->>DB: Permanent safe failure, no outbound connection
+        else Safe target
+            M->>M: Fresh Unix timestamp and HMAC of timestamp.rawBytes
+            M->>E: POST with stable event ID, fresh signature/timestamp
+            E-->>M: 2xx / 429 / 5xx / timeout / permanent 4xx
+            M->>DB: Persist attempt and success/retry/failed state
+            Note over M,DB: Retry delays 1m,5m,15m,30m,60m, Retry-After may extend
+        end
+        break Job succeeded or permanently failed or exhausted
+            M->>DB: Mark terminal, no further automatic attempts
+        end
+    end
+    Note over W,DB: Worker has no Merchant DB login and never receives signing key

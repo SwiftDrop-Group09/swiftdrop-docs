@@ -1,0 +1,12 @@
+{
+  "eventId": "d4d07f1e-f043-4cc2-a7e1-e88862cfb388",
+  "eventType": "StatusChanged",
+  "schemaVersion": 1,
+  "occurredAt": "2026-10-16T10:00:00Z",
+  "parcelId": "parcel-example",
+  "parcelVersion": 4,
+  "merchantId": "merchant-example",
+  "status": "InTransit",
+  "previousStatus": "PickedUp",
+  "correlationId": "example-correlation"
+}

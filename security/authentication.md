@@ -1,147 +1,36 @@
-# Authentication Architecture Specification
+# Authentication
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026  
+> Status: Proposed baseline 2.0 · DEC-05/12 · SEC/UI approval pending
 
----
+## Local and Google login
 
-## 1. Overview
+Identity owns local credentials, external subject links and sessions. Register accepts email/password/fullName and assigns Customer only; normalize/uniquely index email, validate password 12–128 characters, hash with salted Argon2id (parameters measured/configured before release), and return no password/hash. Login uses generic invalid-credentials responses, throttling and escalating account lockout; disabled accounts cannot register a replacement identity or refresh. Password-reset delivery is deferred. Admin-created local fixture accounts use unique generated passwords distributed privately. Never commit real demo passwords.
 
-SwiftDrop implements a federated, token-based authentication architecture designed to support both human interactive users (web SPAs, mobile applications) and automated machine-to-machine (M2M) merchant enterprise integrations. 
+Both React and Flutter Customer/Courier use their platform Google SDK to obtain a Google **ID token** and POST `{idToken}` to `/api/v1/auth/google`. There is no backend authorization-code exchange or callback endpoint in this baseline. Configure distinct web/Android client IDs and explicit audience allowlist. The SDK owns provider consent/redirect behavior; browser callback/nonce/CSRF checks use the SDK's documented flow. Identity validates signature with cached Google JWKS, `iss` allowlist, exact allowed `aud`, expiry and verified email; enforce azp/nonce checks when the chosen SDK supplies them. Google cancellation creates no session; bad/expired token returns 401 with no account mutation.
 
-1. **Human Users (Customers, Couriers, Dispatchers, Admins, Merchants):** Authenticate via **Google OpenID Connect (OIDC)**. The Identity Service validates the Google ID token and issues SwiftDrop-scoped, cryptographically signed JSON Web Tokens (JWT).
-2. **Merchant Enterprise Systems:** Authenticate via high-entropy **API Keys** (`sk_live_...` / `sk_test_...`) transmitted via HTTP headers, validated against salted SHA-256 hashes stored in the Merchant database.
+Resolve **(provider, subject)**, never email alone:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as User (Web / Mobile)
-    participant Google as Google Identity Provider (OIDC)
-    participant Gateway as YARP API Gateway
-    participant IdentitySvc as Identity Service (:5001)
-    participant Redis as Token Blacklist / Cache
-    participant Svc as Downstream Service (Delivery / Merchant)
+1. Existing subject → load its linked active user; authenticate only that user.
+2. No subject and no normalized-email collision → create Customer and unique external identity atomically.
+3. Local account with matching email → `409 account_link_required`; **do not silently merge**, even for verified Google email.
+4. Linking requires authenticated local session, fresh password verification and valid Google token in `LinkGoogle`; atomically ensure subject belongs to no other user. Different local/Google email requires a separately verified account-change procedure and is deferred. Disabled users and subject collisions are rejected.
 
-    User->>Google: Authenticate with Google Credentials
-    Google-->>User: Issue Google id_token (JWT)
-    
-    User->>Gateway: POST /api/v1/auth/google { idToken }
-    Gateway->>IdentitySvc: Forward Token Exchange Request
-    IdentitySvc->>Google: Fetch Google JWKS & Validate Signature
-    IdentitySvc->>IdentitySvc: Provision / Resolve User Account & Roles
-    IdentitySvc->>IdentitySvc: Generate RS256 Access Token + Refresh Token
-    IdentitySvc-->>User: { accessToken, refreshToken, userProfile }
+## SwiftDrop tokens and sessions
 
-    note over User, Gateway: Subsequent Authenticated Requests
-    User->>Gateway: GET /api/v1/parcels (Authorization: Bearer <JWT>)
-    Gateway->>Gateway: Validate JWT Signature (Public Key / JWKS)
-    Gateway->>Redis: Check if jti is Revoked (Blacklist)
-    Gateway->>Svc: Forward Request with X-User-Id, X-User-Role
-    Svc-->>User: 200 OK Response
-```
+Use signed RS256 access JWTs with issuer configured per environment, explicit audience, sub, roles, iat/nbf/exp, jti and optional authenticated merchant membership. Lifetime **≤900 seconds**; service clocks allow a small explicit skew (≤30s). Service JWTs have separate audience/scope and ≤5-minute lifetime, issued through controlled workload provisioning, never merchant API keys or caller-supplied role headers. Services validate signature/algorithm/issuer/audience/time independently. Strip untrusted X-User-* headers at gateway; do not replace cryptographic authentication with forwarded claims.
 
----
+Identity exposes `/.well-known/jwks.json` containing public keys only. It is not presented as a full OIDC authorization server and does not invent discovery/code endpoints. Cache trusted JWKS up to 1h with one bounded unknown-kid refresh; rotate retaining old verification keys through token expiry. Fail closed for unknown keys. Google ID tokens are used only for login/link, not as bearer tokens to Delivery.
 
-## 2. Authentication Methods & User Onboarding
+Refresh tokens are opaque ≥256 random bits, hashed in Identity DB, expiry 30 days, family-linked and rotated atomically at Refresh. Reuse revokes the entire family. Browser receives refresh token as Secure HttpOnly SameSite=Strict cookie restricted to `/api/v1/auth`; `credentials: include` plus exact allowed Origin and CSRF token are required for refresh/logout. On this client the JSON refresh field is omitted; mobile submits it in the body and stores it in platform secure storage. Never keep browser access tokens in persistent localStorage; use memory. Cross-site frontend/API arrangements require an explicit cookie/CSRF design before deployment.
 
-### 2.1. Hybrid Authentication Model
-SwiftDrop supports a hybrid authentication architecture:
-1. **Google OpenID Connect (OIDC):** Recommended passwordless flow for end-users and administrators. Users authenticate with Google credentials; the Identity Service validates the Google ID token and provisions/authenticates the account without storing local passwords.
-2. **Local Email & Password Registration (SRS FR-C01):** Direct user onboarding where credentials are validated, salted, and hashed using **Argon2id** (stored in `Users.password_hash` in Identity DB).
+Logout returns 204 and revokes the **caller's** refresh family. **Existing access JWTs remain valid until expiry (at most 15 minutes)**; role/deactivation changes have the same bound in downstream services. Identity refuses new logins/refresh immediately when disabled. No Redis blacklist/backplane is part of this baseline. If immediate downstream revocation becomes required, add an approved introspection/revocation design and tests before claiming it.
 
-### 2.2. Google OIDC Token Exchange Handshake
-1. The client invokes Google Sign-In SDK with scopes `openid`, `email`, and `profile`.
-2. The resulting `id_token` is sent to `POST /api/v1/auth/google`.
-3. Identity Service verifies:
-   - Signature against `https://www.googleapis.com/oauth2/v3/certs`.
-   - Audience (`aud`) matches configured Google Client ID.
-   - Issuer (`iss`) equals `accounts.google.com` or `https://accounts.google.com`.
-   - Expiration time (`exp`) has not passed.
-4. If valid, the user record is queried by `GoogleSubjectId` / `Email`. If absent, an account is auto-created with default role `Customer`.
+## Merchant credentials
 
----
+Human merchant owners use app JWTs; their external system uses `X-API-Key` with `swd_test_<keyId>_<random>` for local examples (`swd_live_` reserved for a separately configured deployment). At least 256 random secret bits; show complete key once. Store keyId/prefix, random per-key salt and SHA-256(salt || UTF8(rawKey)), scopes, business, active flag. Locate by public keyId and compare hash in constant time. Merchant API validates business Approved, key active and scope on **each request**; suspension/revocation takes effect immediately. Hashes, keys and request credentials never appear in logs. Owner cannot self-approve or mint Admin roles. Webhook keys are **encrypted retrievable secrets**, distinct from one-way API-key hashes.
 
-## 3. JSON Web Token (JWT) Specification
+See [REST](../api/rest-api.md), [authorization](authorization.md), [data model](../architecture/data-architecture.md) and [negative tests](../testing/test-cases.md).
 
-SwiftDrop access tokens are signed using **RS256 (RSA Signature with SHA-256)** using a 2048-bit asymmetric key pair managed by the Identity Service. Downstream services and the YARP Gateway verify tokens using the cached public key without querying the Identity database on every request.
+## Protocol reference
 
-### 3.1. Token Header
-```json
-{
-  "alg": "RS256",
-  "typ": "JWT",
-  "kid": "swiftdrop-auth-key-2026-v1"
-}
-```
-
-### 3.2. Token Payload Claims
-```json
-{
-  "iss": "https://identity.swiftdrop.io",
-  "sub": "u_8849b3d0-6218-47f2-9c1a-9f5b61a9bc34",
-  "aud": "https://api.swiftdrop.io",
-  "exp": 1729037700,
-  "nbf": 1729036800,
-  "iat": 1729036800,
-  "jti": "jwt_b7e92a83f1c447d9a102938475610293",
-  "email": "sarah.perera@gmail.com",
-  "name": "Sarah Perera",
-  "role": "Customer",
-  "permissions": [
-    "parcels:create",
-    "parcels:read_own",
-    "parcels:cancel_own"
-  ],
-  "merchantId": null
-}
-```
-
-### 3.3. Token Lifetime & Refresh Strategy
-- **Access Token TTL:** 15 minutes (`900s`) in strict compliance with SRS NFR-05.
-- **Refresh Token TTL:** 30 days (`2592000s`).
-- **Refresh Token Rotation (RTR):** Every time a refresh token is presented at `POST /api/v1/auth/refresh`, it is immediately invalidated and replaced with a newly minted refresh token. If a previously invalidated refresh token is reused, the entire token family is revoked (indicative of token theft).
-- **Session Revocation:** Logout calls (`POST /api/v1/auth/logout`) mark the refresh token revoked in PostgreSQL and publish the `jti` to Redis with an expiration matching the token's remaining lifetime.
-
----
-
-## 4. Machine-to-Machine (M2M) Merchant API Key Authentication
-
-Enterprise merchants integrating their ERPs, Shopify stores, or custom backends authenticate using opaque API Keys.
-
-### 4.1. Key Anatomy
-```
-[REDACTED_STRIPE_KEY]
-^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- Prefix  160-bit High-Entropy Cryptographic Random Secret
-```
-
-### 4.2. Storage & Validation Invariant
-- **Never Stored in Plaintext:** The raw API key is displayed to the merchant **only once** upon generation.
-- **Hashing:** Stored as `SHA256(raw_key + salt)` with a unique 32-byte per-merchant salt.
-- **Validation:** When `X-API-Key` is passed in the request header, YARP/Merchant Service hashes the input with the tenant salt and performs constant-time string comparison (`CryptographicOperations.FixedTimeEquals`) to eliminate timing attack vectors.
-
----
-
-## 5. JSON Web Key Set (JWKS) Discovery
-
-The Identity Service exposes standard RFC 7517 discovery endpoints for gateway and internal service signature verification:
-
-- **OpenID Configuration:** `GET /.well-known/openid-configuration`
-- **JWKS Endpoint:** `GET /.well-known/jwks.json`
-
-```json
-{
-  "keys": [
-    {
-      "kty": "RSA",
-      "use": "sig",
-      "alg": "RS256",
-      "kid": "swiftdrop-auth-key-2026-v1",
-      "n": "u1W5v6yX...[Base64Url Modulus]...",
-      "e": "AQAB"
-    }
-  ]
-}
-```
-Downstream services cache the JWKS for 24 hours, automatically refreshing upon receiving a token with an unrecognized `kid`.
+[Google ID-token verification and stable subject identifiers](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) supports signature/audience/issuer/expiry validation and subject-based identity. The stricter explicit local-account linking policy is SwiftDrop’s proposed security choice.

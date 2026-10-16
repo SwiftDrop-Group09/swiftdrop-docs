@@ -1,10 +1,11 @@
 # Architecture Diagrams
 
-## SwiftDrop Application Architecture
+> Proposed baseline 2.0 · Owner and review date pending
 
-The architecture is documented in a text-readable Markdown format for AI and documentation tools:
+- [Architecture narrative and Mermaid](architecture.md)
+- [Editable source](architecture.mmd)
+- [Rendered SVG](architecture.svg)
+- [Regenerated architecture PDF](swiftdrop-architecture.pdf)
+- [Complete diagram index](../README.md)
 
-- [Architecture documentation](architecture.md)
-- [Original architecture diagram (PDF)](swiftdrop-architecture.pdf)
-
-The Markdown document describes the components, responsibilities, data stores, communication paths, and Mermaid overview. The PDF is retained as the original visual reference.
+Exports follow the current proposed contracts. The historical architecture PDF is retained in Git history; rendering is not team approval.

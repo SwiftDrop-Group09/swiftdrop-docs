@@ -1,0 +1,713 @@
+[
+  {
+    "source": "design/diagrams/architecture/architecture.mmd",
+    "sourceSha256": "8506de3c8ec94c36c550aef01ab675317a9d5c53cda8d5e0388347f65b89a0a1",
+    "artifact": "design/diagrams/architecture/architecture.svg",
+    "result": "PASS",
+    "diagramId": "DIA-01",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "NFR-15",
+      "NFR-16"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/assignment-proof.mmd",
+    "sourceSha256": "4c93b6af005ef53eaa823dea1dc83a175c8a93ff540fc690d2c9654a68b74996",
+    "artifact": "design/diagrams/sequence/assignment-proof.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-assignment-proof",
+    "version": "2.0",
+    "useCase": "UC-03",
+    "requirementIds": [
+      "FR-D02",
+      "FR-D03",
+      "FR-D04",
+      "FR-R03"
+    ],
+    "operationIds": [
+      "AssignCourier",
+      "CompleteDeliveryWithProof"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/courier-status-notification.mmd",
+    "sourceSha256": "69c4e4d335b80b41ad3be4017552f0a1ccc2a6f0a6eb08187e6dc93f1558fb31",
+    "artifact": "design/diagrams/sequence/courier-status-notification.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-courier-status-notification",
+    "version": "2.0",
+    "useCase": "UC-03",
+    "requirementIds": [
+      "FR-R02",
+      "FR-R03",
+      "FR-R04",
+      "FR-C06",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [
+      "UpdateDeliveryStatus",
+      "CompleteDeliveryWithProof",
+      "DispatchWebhook",
+      "ParcelEvents"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/customer-booking.mmd",
+    "sourceSha256": "fe98aa70e1426c7ee1aeac86a07024ac23444fee0aaf70f130a381bcf0d95a9c",
+    "artifact": "design/diagrams/sequence/customer-booking.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-customer-booking",
+    "version": "2.0",
+    "useCase": "UC-01",
+    "requirementIds": [
+      "FR-C04",
+      "FR-C05",
+      "NFR-10",
+      "NFR-11"
+    ],
+    "operationIds": [
+      "EstimateFee",
+      "CreateParcel"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/google-login.mmd",
+    "sourceSha256": "6284fb7193712cf116b98491ccb936091a3c798554f0c59ee260cb482e3103c4",
+    "artifact": "design/diagrams/sequence/google-login.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-google-login",
+    "version": "2.0",
+    "useCase": "UC-04",
+    "requirementIds": [
+      "FR-C02",
+      "NFR-05",
+      "NFR-08"
+    ],
+    "operationIds": [
+      "GoogleLogin",
+      "LinkGoogle"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/merchant-order.mmd",
+    "sourceSha256": "e329998f250b6592f5f58b63520e255317c0e983e3c607ee01ff8edc91312df9",
+    "artifact": "design/diagrams/sequence/merchant-order.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-merchant-order",
+    "version": "2.0",
+    "useCase": "UC-02",
+    "requirementIds": [
+      "FR-M03",
+      "FR-M04",
+      "FR-M06",
+      "FR-M07",
+      "NFR-10"
+    ],
+    "operationIds": [
+      "SubmitMerchantOrder",
+      "GetMerchantOrder",
+      "MerchantDashboard"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/refresh-session.mmd",
+    "sourceSha256": "f10af8becf2ce9f6a5c753b7b566fb26e116f56e0c360afd4325e068b98551da",
+    "artifact": "design/diagrams/sequence/refresh-session.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-refresh-session",
+    "version": "2.0",
+    "useCase": "UC-04",
+    "requirementIds": [
+      "FR-C01",
+      "NFR-05"
+    ],
+    "operationIds": [
+      "Refresh",
+      "Logout"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/sequence/webhook-delivery.mmd",
+    "sourceSha256": "1285ec74cb7dd0d2011ae449143401fb6c5bf10189e42471be64ac145a698a7b",
+    "artifact": "design/diagrams/sequence/webhook-delivery.svg",
+    "result": "PASS",
+    "diagramId": "SEQ-webhook-delivery",
+    "version": "2.0",
+    "useCase": "UC-03",
+    "requirementIds": [
+      "FR-M05",
+      "NFR-07",
+      "NFR-12",
+      "NFR-13"
+    ],
+    "operationIds": [
+      "DispatchWebhook",
+      "ListWebhookAttempts"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "architecture/system-context.md#mermaid-1",
+    "sourceSha256": "2b0d8f7d9c61d8ed6cfd4d286d8c809c835f16ce177bc1f6fdfb00ada2629bf0",
+    "artifact": "design/diagrams/generated/architecture-system-context-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-09",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "NFR-15",
+      "NFR-16"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/architecture/architecture.md#mermaid-1",
+    "sourceSha256": "8506de3c8ec94c36c550aef01ab675317a9d5c53cda8d5e0388347f65b89a0a1",
+    "artifact": "design/diagrams/generated/design-diagrams-architecture-architecture-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-10",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "NFR-15",
+      "NFR-16"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-1",
+    "sourceSha256": "6bda3a00f31f142f82769ea97d29d37d5975f3fcfa9d1f5ed9f6f42f0a1f1054",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-11",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-2",
+    "sourceSha256": "14e1a712107723ecc33a6a33ed2dcba733c8cff3de79ee44c93e33bff250617a",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-2.svg",
+    "result": "PASS",
+    "diagramId": "DIA-12",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-3",
+    "sourceSha256": "da35bb6eca9934e3057ff4693aef6931face4ba5ddcc2fe9271c1c3124f8489c",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-3.svg",
+    "result": "PASS",
+    "diagramId": "DIA-13",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-4",
+    "sourceSha256": "347446d47c3d4ec4e0b8d5c0680ec29a87c7b6c697420f13215f4ddb0ba2732a",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-4.svg",
+    "result": "PASS",
+    "diagramId": "DIA-14",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-5",
+    "sourceSha256": "e75e0dfb3057da17585899bd988d3c08ced0280bfb8be43b100b21015e6a7b14",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-5.svg",
+    "result": "PASS",
+    "diagramId": "DIA-15",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-6",
+    "sourceSha256": "c1bc7d099b9fb19d76526ea9a6713369b68176dba494cc97f632c49e2cb3fc7e",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-6.svg",
+    "result": "PASS",
+    "diagramId": "DIA-16",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/er/README.md#mermaid-7",
+    "sourceSha256": "258ee9f9d40d049bb7fd28a4517763ab96aa1a7ccdf2535a94264c8a6b1eace1",
+    "artifact": "design/diagrams/generated/design-diagrams-er-README-7.svg",
+    "result": "PASS",
+    "diagramId": "DIA-17",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "FR-C01",
+      "FR-C04",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-1",
+    "sourceSha256": "98f59992c7a4b4d4a722260d73538fd001154f9d0df1ebcc681172f1897887b2",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-18",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-2",
+    "sourceSha256": "76d6bcc7ade120a794f5f7891527a1e0fbce7c47571517cddc9e2caea4e1a523",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-2.svg",
+    "result": "PASS",
+    "diagramId": "DIA-19",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-3",
+    "sourceSha256": "edf2888770143b2a22151957580cf2e0a25967854f0c61bae244242d8ff2769e",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-3.svg",
+    "result": "PASS",
+    "diagramId": "DIA-20",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-4",
+    "sourceSha256": "bdde2ccdd67cbebffa958357b35f4fd6b0df24e3471c4a1245f682bf17c471e8",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-4.svg",
+    "result": "PASS",
+    "diagramId": "DIA-21",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-5",
+    "sourceSha256": "edc801d06028c98597dce7b547ef8e8ce9eb47218312b029b41e80734fb511fd",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-5.svg",
+    "result": "PASS",
+    "diagramId": "DIA-22",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/use-cases/README.md#mermaid-6",
+    "sourceSha256": "e6da84c375ad1dbf3c21c42c222245845f593c5d422bfab07d9006930c06d9c0",
+    "artifact": "design/diagrams/generated/design-diagrams-use-cases-README-6.svg",
+    "result": "PASS",
+    "diagramId": "DIA-23",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "integration/integration-design.md#mermaid-1",
+    "sourceSha256": "4766932390224d2fc7b41d795aff9e345d6bb1699109173fb9ad14b05bd7f1a1",
+    "artifact": "design/diagrams/generated/integration-integration-design-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-24",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "NFR-15",
+      "NFR-16"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "integration/merchant-webhooks.md#mermaid-1",
+    "sourceSha256": "0da55e8647950bebfccdb67dde2834b672d004fbd72ae929ce20acb0980f945c",
+    "artifact": "design/diagrams/generated/integration-merchant-webhooks-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-25",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "NFR-14",
+      "NFR-15",
+      "NFR-16"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "requirements/srs.md#mermaid-1",
+    "sourceSha256": "7526c9fe97da3f072694a1f827380b4f7d9f93599d3614d90112364f2fa1948c",
+    "artifact": "design/diagrams/generated/requirements-srs-1.svg",
+    "result": "PASS",
+    "diagramId": "DIA-26",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "requirements/srs.md#mermaid-2",
+    "sourceSha256": "56ad476784693bb473642dde76bf5b97fefce8cdc94818aba3d17c4c748f2c93",
+    "artifact": "design/diagrams/generated/requirements-srs-2.svg",
+    "result": "PASS",
+    "diagramId": "DIA-27",
+    "version": "2.0",
+    "useCase": "Cross-cutting",
+    "requirementIds": [
+      "FR-C04",
+      "FR-M04",
+      "FR-R02",
+      "FR-C02"
+    ],
+    "operationIds": [],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/assignment-workload.puml",
+    "sourceSha256": "b2fe07434eb63aa3f4430780bb516cd6537570f19c99901f51c42324cc59f409",
+    "artifact": "design/diagrams/activity/assignment-workload.svg",
+    "result": "PASS",
+    "diagramId": "ACT-assignment-workload",
+    "version": "2.0",
+    "useCase": "Supporting",
+    "requirementIds": [
+      "FR-D01",
+      "FR-D02",
+      "FR-D03",
+      "FR-D04",
+      "FR-D05"
+    ],
+    "operationIds": [
+      "ListParcels",
+      "AssignCourier",
+      "CourierWorkload",
+      "ZoneSummary"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/courier-status-notification.puml",
+    "sourceSha256": "08c7418b7637e5ff9cc5b5de8bbe4f012e1fda055117fad1188c3748402249bd",
+    "artifact": "design/diagrams/activity/courier-status-notification.svg",
+    "result": "PASS",
+    "diagramId": "ACT-courier-status-notification",
+    "version": "2.0",
+    "useCase": "UC-03",
+    "requirementIds": [
+      "FR-R02",
+      "FR-R03",
+      "FR-R04",
+      "FR-C06",
+      "FR-M05",
+      "NFR-11"
+    ],
+    "operationIds": [
+      "UpdateDeliveryStatus",
+      "CompleteDeliveryWithProof",
+      "DispatchWebhook",
+      "ParcelEvents"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/customer-booking.puml",
+    "sourceSha256": "e858c5e3a6b4b7a40b720c56514d69eb1628f3f18fac39694e275e1780fbdbe4",
+    "artifact": "design/diagrams/activity/customer-booking.svg",
+    "result": "PASS",
+    "diagramId": "ACT-customer-booking",
+    "version": "2.0",
+    "useCase": "UC-01",
+    "requirementIds": [
+      "FR-C04",
+      "FR-C05",
+      "NFR-10",
+      "NFR-11"
+    ],
+    "operationIds": [
+      "EstimateFee",
+      "CreateParcel"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/google-login.puml",
+    "sourceSha256": "8cfbaaa88c9b1e5b4f59e6f6be0bb244b461d530fc71af942794cd0833a31d4c",
+    "artifact": "design/diagrams/activity/google-login.svg",
+    "result": "PASS",
+    "diagramId": "ACT-google-login",
+    "version": "2.0",
+    "useCase": "UC-04",
+    "requirementIds": [
+      "FR-C02",
+      "NFR-05",
+      "NFR-08"
+    ],
+    "operationIds": [
+      "GoogleLogin",
+      "LinkGoogle"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/merchant-onboarding.puml",
+    "sourceSha256": "3c2c96181326be800103d2b94ebf18e06adac0bfe3bad40911862425b81753aa",
+    "artifact": "design/diagrams/activity/merchant-onboarding.svg",
+    "result": "PASS",
+    "diagramId": "ACT-merchant-onboarding",
+    "version": "2.0",
+    "useCase": "Supporting",
+    "requirementIds": [
+      "FR-M01",
+      "FR-M02",
+      "FR-A03"
+    ],
+    "operationIds": [
+      "RegisterMerchant",
+      "SetMerchantStatus"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  },
+  {
+    "source": "design/diagrams/activity/merchant-order.puml",
+    "sourceSha256": "9aebff46c6a8a6b03e308f3da0e256c3f0244c67def44b70ead9fde688021e1b",
+    "artifact": "design/diagrams/activity/merchant-order.svg",
+    "result": "PASS",
+    "diagramId": "ACT-merchant-order",
+    "version": "2.0",
+    "useCase": "UC-02",
+    "requirementIds": [
+      "FR-M03",
+      "FR-M04",
+      "FR-M06",
+      "FR-M07",
+      "NFR-10"
+    ],
+    "operationIds": [
+      "SubmitMerchantOrder",
+      "GetMerchantOrder",
+      "MerchantDashboard"
+    ],
+    "owner": "Unassigned",
+    "reviewDate": null,
+    "approval": "Pending",
+    "relatedDecisions": "DEC-01\u2013DEC-12 as applicable"
+  }
+]

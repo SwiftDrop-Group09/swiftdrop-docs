@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant C as React or Flutter Customer/Courier
+    participant G as Google SDK/provider
+    participant Y as YARP
+    participant I as Identity API
+    participant DB as Identity DB
+    U->>C: Choose Google sign-in
+    C->>G: SDK sign-in with configured client
+    alt User cancels or provider fails
+        G-->>C: Cancel/error
+        C-->>U: No SwiftDrop session
+    else SDK returns ID token
+        G-->>C: Google ID token
+        C->>Y: POST /api/v1/auth/google (GoogleLogin)
+        Y->>I: Forward idToken
+        I->>I: Validate signature issuer audience expiry CSRF/nonce
+        alt Invalid/unverifiable token
+            I-->>C: 401 / no mutation
+        else Valid token
+            I->>DB: Resolve provider + subject, check active user
+            alt Existing linked active user
+                DB-->>I: Existing identity and roles
+            else No subject and no local email collision
+                I->>DB: Atomic Customer + external identity
+            else Local email collision or disabled account
+                I-->>C: Reject / account_link_required
+                Note over I,DB: No automatic email merge, LinkGoogle requires local reauthentication
+            end
+            opt Eligible active identity resolved
+                I->>DB: Persist hashed refresh session
+                I-->>C: 200 app JWT and client-appropriate refresh storage
+                C-->>U: Open role-authorized experience
+            end
+        end
+    end
