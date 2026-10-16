@@ -6,7 +6,7 @@ SwiftDrop is Group 09's Parcel Delivery and Courier Management project for Enter
 
 ## Official assignment constraints
 
-The following is a meaning-preserving reconciliation supplied by the [review plan](../documentation-fix-plan.md). **The lecturer's `EAD Group Assignment.pdf` is not present in this repository and has not been independently compared in this change.** REQ must attach its approved location and verify this table before sign-off; page citations and exact bonus scoring remain unverified.
+The following records the proposed assignment interpretation. **The lecturer's `EAD Group Assignment.pdf` is not present in this repository and has not been independently compared in this change.** REQ must attach its approved location and verify this table before sign-off; page citations and exact bonus scoring remain unverified. This source check is tracked in [remaining work](../documentation-fix-plan.md).
 
 | Area | Assignment requirement described by the supplied review |
 |---|---|

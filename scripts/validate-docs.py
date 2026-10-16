@@ -66,8 +66,6 @@ for r in routes:
     expected = '| ' + ' | '.join(r[k] for k in ('operationId','method','path','owner','authorization','request','response','success')) + ' |'
     check(expected in (ROOT/'api/rest-api.md').read_text(encoding='utf-8'), f'REST table drift: {r["operationId"]}')
 for p in markdown:
-    if p.name == 'documentation-fix-plan.md':
-        continue  # Immutable supplied review describes historical invalid routes.
     for method, route in re.findall(r'\b(GET|POST|PUT|PATCH|DELETE)\s+(/(?:api/v\d+|internal/v\d+)/[\w/{}/.-]+)', p.read_text(encoding='utf-8')):
         check((method, route.rstrip('.,')) in routepairs, f'{p.relative_to(ROOT)}: undeclared route {method} {route}')
 stats['canonical_rest_operations'] = len(routes)

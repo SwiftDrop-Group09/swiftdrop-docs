@@ -6,7 +6,7 @@ The following commands were executed locally against the revised files. These ar
 
 | Check | Command / tool | Observed result |
 |---|---|---|
-| Markdown integrity | `python scripts/validate-docs.py` | PASS: all relative paths/anchors/images resolve across 53 Markdown files; zero reported errors |
+| Markdown integrity | `python scripts/validate-docs.py` | PASS: link validation rerun after tracking cleanup; all relative paths/anchors/images resolve across 52 Markdown files; zero reported errors |
 | Route/requirement/test consistency | Same validator | PASS: 57 unique canonical operations; 32 FR + 20 NFR = 52 mapped; 68 unique drafted cases; three required priorities Must |
 | JSON/event schema | Draft 2020-12 validator plus format checks | PASS: JSON parses; event example validates; injected private address field rejected; canonical state mapping matches |
 | GraphQL design | `node scripts/validate-graphql.mjs` | PASS: SDL and safe public query valid; attempted private fields rejected by schema; runtime resolvers not tested |
@@ -33,4 +33,4 @@ Windows PowerShell; Python 3.14.3; Node 24.9.0; Java 21.0.8; PlantUML 1.2026.8; 
 - Flutter Customer/Courier device onboarding, browser SSE reconnect, actual latency/load/coverage reports and final report/demo evidence: pending owning implementations.
 - Named team allocation, individual contribution verification and ADR/diagram/PR approval: pending team records; all design decisions remain Proposed.
 
-Issue-level corrections and remaining gates are in the [remediation ledger](../documentation-remediation.md); no unexecuted check above is recorded as passing.
+Outstanding verification, approvals and submission tasks are consolidated in the [remaining-work checklist](../documentation-fix-plan.md); no unexecuted check above is recorded as passing.

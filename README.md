@@ -56,7 +56,7 @@ Its primary objectives are to:
 - Maintain testing, deployment, and submission documentation.
 - Support collaboration and knowledge sharing among team members.
 
-> **Documentation status:** The reconciled baseline is Proposed and ready for review. Contracts, diagrams, test cases and deployment references describe the intended system; they do not establish implementation completion or team approval. Evidence gaps are recorded in the remediation ledger.
+> **Documentation status:** The reconciled baseline is Proposed and ready for review. Contracts, diagrams, test cases and deployment references describe the intended system; they do not establish implementation completion or team approval. Outstanding verification and approval tasks are recorded in the remaining-work checklist.
 
 ---
 
@@ -363,7 +363,7 @@ _Maintained by SwiftDrop Group 09._
 
 ## Documentation remediation baseline 2.0
 
-**Status: Proposed; team approval pending.** The [supplied fix plan](documentation-fix-plan.md) is tracked issue by issue in the [remediation ledger](documentation-remediation.md). The [decision register](architecture/decisions/README.md) keeps DEC-01–DEC-12 Proposed; no member approval or implementation completion is invented. [Assignment overview](requirements/assignment-overview.md) separates official constraints from team choices; the missing lecturer PDF still requires verification. Assessment is 20 marks overall with 20/50/15/15 category weights.
+**Status: Proposed; team approval pending.** Outstanding verification, approval and submission tasks are tracked in the [remaining-work checklist](documentation-fix-plan.md). The [decision register](architecture/decisions/README.md) keeps DEC-01–DEC-12 Proposed; no member approval or implementation completion is invented. [Assignment overview](requirements/assignment-overview.md) separates official constraints from team choices; the missing lecturer PDF still requires verification. Assessment is 20 marks overall with 20/50/15/15 category weights.
 
 Canonical design sources are [service catalog](architecture/service-catalog.md), [parcel states](architecture/parcel-state-machine.md), [REST](api/rest-api.md), [events](integration/event-catalog.md), [authentication](security/authentication.md) and [environment matrix](deployment/environments.md). Three APIs + YARP + Worker use four logical DBs on one PostgreSQL instance. GraphQL and SSE live in Delivery; Merchant owns webhook signing/attempts; no cross-service SQL. Redis/GPS/SignalR and bulk ingestion are deferred. React covers all roles/public tracking and Flutter covers Customer **and** Courier. Mandatory receipt, merchant dashboard and Admin reports have explicit interfaces/tests/demo steps.
 

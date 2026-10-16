@@ -12,5 +12,3 @@
 *.graphql text eol=lf
 *.txt text eol=lf
 *.pdf binary
-# Preserve the supplied review snapshot, including Markdown hard-break spaces.
-documentation-fix-plan.md -text whitespace=-blank-at-eol
