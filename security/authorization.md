@@ -1,130 +1,30 @@
-# Authorization & Access Control Architecture
+# Authorization and Ownership
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026  
+> Status: Proposed baseline 2.0 · SEC/domain approval pending
 
----
+YARP routes requests, applies rate limits/TLS ingress and may reject invalid tokens coarsely. **Each domain service** validates credentials, roles/scopes and resource ownership itself. Ignore user/merchant IDs or role headers from external clients; derive identity from validated tokens or Merchant-validated API keys. An internal network is not an authorization boundary. GraphQL resolvers and REST/gRPC wrappers use the same handlers.
 
-## 1. Overview
-
-SwiftDrop enforces a hybrid access control model combining **Role-Based Access Control (RBAC)** for broad coarse-grained capabilities and **Attribute-Based Access Control (ABAC)** for fine-grained resource-level ownership validation.
-
-- **Policy Enforcement Points (PEP):**
-  1. **YARP Gateway:** Coarse-grained gatekeeper verifying valid token signature, role claims, and IP rate limits.
-  2. **Service Layer (ASP.NET Core Controllers & Handlers):** Fine-grained permission checks and ownership verification against domain entity state.
-- **Principle of Least Privilege:** Users and services operate with the minimal set of privileges required to perform their functions.
-
----
-
-## 2. Platform Roles & Personas
-
-| Role | Target Persona | Primary Responsibilities |
+| Action | Allowed actor | Mandatory resource guard |
 |---|---|---|
-| **Customer** | End-consumers / General Public | Book personal parcels, view order history, track live shipments, cancel pending bookings. |
-| **Courier** | Field delivery personnel | View assigned manifest, accept deliveries, submit status changes (pickup, delivered), upload PoD. |
-| **Dispatcher** | Logistics & operations controllers | Monitor active deliveries, assign/reassign couriers, resolve delivery exceptions, manage fleet workload. |
-| **Merchant** | E-commerce businesses & vendors | Generate API keys, bulk-import shipments, register webhooks, access merchant shipping analytics. |
-| **Admin** | System administrators & compliance | User management, role elevation, merchant approval/suspension, global audit log review. |
+| Estimate/confirm Customer booking | Customer JWT | quote.owner_id == sub; immutable input/price snapshot |
+| Private parcel/history/SSE | Owner Customer; assigned Courier; Dispatcher/Admin | customer_id == sub or current assignment or operations role; no phone-number ownership shortcut |
+| Receipt/proof download | Owner Customer or Admin | own Delivered parcel; private streamed bytes, no public URL |
+| Assignment/reassignment | Dispatcher/Admin | valid before-pickup state, courier active/capacity/zone, atomic version |
+| PickedUp/InTransit/OutForDelivery/Failed | Current assigned Courier only | assignment.courier_id == sub at **commit**, allowed transition, expectedVersion |
+| Complete with proof | Current assigned Courier only | OutForDelivery, stored/valid required proof, version and assignment at commit |
+| Cancel | Owner Customer, owning Merchant service, Dispatcher/Admin | Created/Assigned only; merchant service must prove matching parcel merchant_id |
+| Merchant onboarding | Authenticated applicant | applicant_id == sub; cannot set Approved |
+| Merchant keys/dashboard | Approved merchant human owner | membership business_id from trusted binding; no arbitrary merchantId |
+| Merchant order submit/read | Approved merchant API key, exact scope | business_id from active key; external order/job belongs to business |
+| Merchant own job reads | Merchant human owner | owned business only |
+| Webhooks | Approved owner JWT or webhooks:manage key | subscription belongs to business; URL safety each send |
+| Users/roles/approval/zones/pricing/reports/audit | Admin JWT | audited privileged action; no last-Admin removal |
+| Public tracking | Anonymous | only PublicTrackingSummary; no private nested fields or SSE |
 
----
+Dispatcher/Admin cannot advance courier operational status or upload courier proof. A merchant API key never grants Customer/Dispatcher/Admin endpoints or GraphQL private Parcel access. A matching recipient phone, email, supplied merchantId or global query filter alone cannot prove authorization. Use explicit resource predicates and version checks inside the transaction; avoid copying the earlier overbroad universal merchant query filter.
 
-## 3. Comprehensive Permission Matrix
+## Internal workload scope
 
-| Permission Key | Customer | Courier | Dispatcher | Merchant | Admin | Scope & Description |
-|---|:---:|:---:|:---:|:---:|:---:|---|
-| `auth:profile:read` | ✅ | ✅ | ✅ | ✅ | ✅ | Read authenticated user profile (`/users/me`) |
-| `auth:profile:update` | ✅ | ✅ | ✅ | ✅ | ✅ | Update own user profile data |
-| `users:list` | ❌ | ❌ | ❌ | ❌ | ✅ | List all platform users |
-| `users:roles:manage` | ❌ | ❌ | ❌ | ❌ | ✅ | Elevate or change role assignments |
-| `parcels:create` | ✅ | ❌ | ✅ | ✅ | ✅ | Create new individual delivery order |
-| `parcels:read:own` | ✅ | ❌ | ❌ | ✅ | ✅ | View parcels created by caller |
-| `parcels:read:assigned` | ❌ | ✅ | ❌ | ❌ | ✅ | View parcels currently assigned to caller |
-| `parcels:read:all` | ❌ | ❌ | ✅ | ❌ | ✅ | View all platform parcels across zones |
-| `parcels:cancel:own` | ✅ | ❌ | ❌ | ✅ | ✅ | Cancel pending order before pickup |
-| `deliveries:assign` | ❌ | ❌ | ✅ | ❌ | ✅ | Dispatch or reassign parcel to courier |
-| `deliveries:status:update` | ❌ | ✅ | ✅ | ❌ | ✅ | Transition state (InTransit, Delivered, Failed) |
-| `deliveries:pod:upload` | ❌ | ✅ | ❌ | ❌ | ✅ | Submit photo & signature Proof of Delivery |
-| `couriers:telemetry:write` | ❌ | ✅ | ❌ | ❌ | ❌ | Stream live GPS coordinates via WebSocket |
-| `couriers:fleet:monitor` | ❌ | ❌ | ✅ | ❌ | ✅ | Real-time map monitoring of all couriers |
-| `merchant:onboard` | ✅ | ❌ | ❌ | ❌ | ✅ | Submit merchant registration request |
-| `merchant:approve` | ❌ | ❌ | ❌ | ❌ | ✅ | Approve or reject merchant application |
-| `merchant:keys:manage` | ❌ | ❌ | ❌ | ✅ | ✅ | Generate, list, and revoke merchant API keys |
-| `merchant:parcels:bulk` | ❌ | ❌ | ❌ | ✅ | ✅ | Ingest bulk consignments via API |
-| `merchant:webhooks:manage` | ❌ | ❌ | ❌ | ✅ | ✅ | Register and test webhook delivery endpoints |
+Merchant→Delivery has bookings:create/read and parcels:cancel with aud=delivery-internal. Worker→Delivery has notifications:resolve for verified event/parcel/version IDs only. Worker→Merchant has webhooks:dispatch with aud=merchant-internal; only authenticated events from its durable inbox may be dispatched. Workload credentials are provisioned/rotated privately; public callers cannot mint them. Merchant never shares DB credentials or signing material with Worker.
 
----
-
-## 4. Resource Ownership Rules (ABAC)
-
-Even if an actor possesses a permission (e.g., `parcels:read:own`), access is conditionally evaluated against domain entity ownership attributes:
-
-### 4.1. Customer Ownership Invariant
-- A user with role `Customer` can **only** view or cancel a parcel if:
-  $$\text{Parcel.SenderId} == \text{CurrentUser.Id} \quad \lor \quad \text{Parcel.RecipientPhone} == \text{CurrentUser.Phone}$$
-- Any attempt to view a foreign parcel returns `403 Forbidden` (or `404 Not Found` to prevent entity enumeration).
-
-### 4.2. Courier Manifest Invariant
-- A user with role `Courier` can **only** advance delivery state or upload Proof of Delivery if:
-  $$\text{Delivery.CourierId} == \text{CurrentUser.CourierId} \quad \land \quad \text{Delivery.Status} \in \{\text{Assigned, PickedUp, InTransit}\}$$
-
-### 4.3. Merchant Isolation Invariant
-- Requests originating with an API key or `Merchant` bearer token are automatically scoped by `TenantId` / `MerchantId` at the database query layer:
-  ```csharp
-  // Global Query Filter in DeliveryDbContext & MerchantDbContext
-  modelBuilder.Entity<Parcel>()
-      .HasQueryFilter(p => _currentUserService.Role == "Admin" 
-                        || p.MerchantId == _currentUserService.MerchantId);
-  ```
-
----
-
-## 5. Policy Enforcement Implementation (.NET 8)
-
-Authorization is implemented using ASP.NET Core Policy-based authorization with declarative attributes and custom `AuthorizationHandler<T>` classes.
-
-### 5.1. Policy Registration in `Program.cs`
-```csharp
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireAdmin", policy => 
-        policy.RequireRole("Admin"));
-        
-    options.AddPolicy("RequireDispatcher", policy => 
-        policy.RequireRole("Dispatcher", "Admin"));
-        
-    options.AddPolicy("CanManageDeliveries", policy => 
-        policy.RequireRole("Courier", "Dispatcher", "Admin"));
-
-    options.AddPolicy("ParcelOwnerOnly", policy =>
-        policy.Requirements.Add(new ParcelOwnershipRequirement()));
-});
-```
-
-### 5.2. Custom Requirement Handler (Ownership Check)
-```csharp
-public class ParcelOwnershipHandler : AuthorizationHandler<ParcelOwnershipRequirement, Parcel>
-{
-    protected override Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
-        ParcelOwnershipRequirement requirement,
-        Parcel resource)
-    {
-        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var userRole = context.User.FindFirst(ClaimTypes.Role)?.Value;
-
-        if (userRole == "Admin" || userRole == "Dispatcher")
-        {
-            context.Succeed(requirement);
-            return Task.CompletedTask;
-        }
-
-        if (resource.SenderId == userId || resource.MerchantId == userId)
-        {
-            context.Succeed(requirement);
-        }
-
-        return Task.CompletedTask;
-    }
-}
-```
+Return 401 for missing/invalid credential, 403 for missing role/scope, 404 for foreign/missing resource, 409 for authorized stale version/state/key conflict, without private side effects. Reassignment and status writes race under one DB concurrency guard; the losing operation receives 409 or 404 if ownership was lost. Privilege/deactivation JWT changes take effect within the [documented 15-minute bound](authentication.md); API-key revocation is immediate in Merchant. Tests must cover both bounds, bypass attempts via GraphQL and direct service calls, and foreign proof/receipt access.

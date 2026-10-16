@@ -1,253 +1,83 @@
 # Merchant Webhooks
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · DEC-10 · MER/MSG/SEC approval pending
 
----
+Merchant API owns subscriptions, retrievable **encrypted** signing secrets, durable webhook jobs and HTTP attempt records. The Worker owns notification and webhook-dispatch jobs in Notifications DB; it calls Merchant through a scoped internal API. **Worker never reads/writes Merchant DB or receives plaintext signing material.** Merchant's embedded dispatcher performs outbound HTTPS. API-key hashes are unrelated to webhook signing keys and cannot be used for HMAC.
 
-## 1. Overview
-
-SwiftDrop delivers real-time delivery status notifications to merchant systems via outbound webhooks. When a delivery event occurs for a merchant-originated order, the system sends a signed HTTP POST request to the merchant's registered webhook URL.
-
----
-
-## 2. Webhook Delivery Flow
+## Dispatch ownership
 
 ```mermaid
 sequenceDiagram
-    participant Delivery as Delivery Ops API
-    participant DB as Delivery DB
-    participant Broker as RabbitMQ
-    participant Worker as Background Worker
-    participant MerchantAPI as Merchant API
-    participant MerDB as Merchant DB
-    participant Endpoint as Merchant Webhook URL
-
-    Delivery->>DB: Status change + outbox event
-    DB-->>Delivery: Committed
-
-    Note over Broker: Outbox relay publishes event
-    Broker->>Worker: Consume StatusChanged / ParcelDelivered
-
-    Worker->>MerchantAPI: Get subscriptions for event + merchant
-    MerchantAPI->>MerDB: Query active webhook subscriptions
-    MerDB-->>MerchantAPI: Subscription(s) with URL + secret
-
-    Worker->>Worker: Build payload
-    Worker->>Worker: Compute HMAC-SHA256 signature
-
-    Worker->>Endpoint: POST {payload}<br/>X-SwiftDrop-Signature: sha256=abc...<br/>X-SwiftDrop-Event-Id: evt-123<br/>X-SwiftDrop-Timestamp: 2026-10-15T...
-
-    alt 2xx Response
-        Endpoint-->>Worker: 200 OK
-        Worker->>MerDB: Record attempt (success)
-    else 4xx Client Error
-        Endpoint-->>Worker: 400 / 422
-        Worker->>MerDB: Record attempt (client error, no retry)
-    else 5xx / Timeout
-        Endpoint-->>Worker: 500 / Timeout
-        Worker->>MerDB: Record attempt (server error)
-        Worker->>Worker: Schedule retry with backoff
+    participant W as Notification Worker
+    participant M as Merchant API
+    participant DB as Merchant DB
+    participant E as Merchant HTTPS receiver
+    W->>M: DispatchWebhook(event) service JWT
+    M->>DB: Atomic event inbox and unique subscription jobs
+    M-->>W: 202 durable dispatch accepted
+    loop Scheduled HTTP attempts
+        M->>DB: Claim due job and load encrypted secret
+        M->>M: Validate target DNS/IP, decrypt, fresh timestamp and HMAC
+        M->>E: POST exact bytes plus signed headers
+        E-->>M: Status or timeout
+        M->>DB: Record attempt and next retry or terminal result
     end
 ```
 
----
+DispatchWebhook accepts StatusChanged only from worker service JWT aud=merchant-internal, scope=webhooks:dispatch. Verify merchantId against subscription owner and event identity; public clients cannot call it. Store `(eventId,subscriptionId,replayGeneration)` unique, generation=0 for automatic processing. Freeze the event body and subscription secret version for that job. Subscription deletion/suspension cancels unsent jobs. Raw secret is generated with ≥256 random bits, shown once on CreateWebhook, encrypted with AEAD and key version at rest; decryption is limited to Merchant's sender. Logs contain job IDs/statuses, never secret/ciphertext/request headers. Rotation uses a replacement subscription/secret; drain or cancel old jobs explicitly, and receivers retain the old key only through the documented retry horizon.
 
-## 3. Webhook Subscription
+## External body and event mapping
 
-### 3.1 Registration
+Body contains eventId, eventType, schemaVersion=1, occurredAt, parcelId, parcelVersion, trackingNumber and status. Merchant resolves trackingNumber through authorized GetBookingByExternalOrder using its persisted job reference; it never expands public data into addresses/contacts/proof. Status maps Created→delivery.created, Assigned→delivery.assigned, PickedUp→delivery.picked_up, InTransit→delivery.in_transit, OutForDelivery→delivery.out_for_delivery, Delivered→delivery.delivered, Failed→delivery.failed, Cancelled→delivery.cancelled. Reassignment uses delivery.assigned and the newer parcelVersion. One canonical transition gives one intended job per subscribed endpoint even under broker retries.
 
-Merchants register webhook endpoints through the Merchant Integration API.
+An event may arrive before Merchant records the successful CreateBooking response. If the parcel-to-order mapping is not yet available, persist the webhook job as PendingResolution and reconcile the merchant inbox jobs; do not discard the event, declare it invalid or count a dependency lookup as an HTTP delivery attempt. Start the six-attempt HTTP schedule only once the authorized tracking reference is resolved. Failed resolution remains durable and alerted.
 
-**Request:**
+## Exact signing and verification
 
-```http
-POST /api/webhooks/subscribe
-Authorization: Bearer {jwt}
-Content-Type: application/json
+- `X-SwiftDrop-Event-Id`: stable event UUID on every automatic retry.
+- `X-SwiftDrop-Timestamp`: **current attempt time as Unix epoch seconds**, decimal ASCII.
+- `X-SwiftDrop-Key-Version`: subscription secret version.
+- `X-SwiftDrop-Signature`: `sha256=<lowercase hex HMAC-SHA256(secret, timestamp + "." + raw_body_bytes)>`.
+- Content-Type: application/json; raw body is UTF-8 bytes stored for the job. Do not parse/reserialize before verifying.
 
-{
-  "url": "https://merchant.example.com/webhooks/swiftdrop",
-  "events": ["StatusChanged", "ParcelDelivered", "DeliveryFailed"],
-  "secret": "whsec_merchant_generated_secret_key"
-}
-```
-
-**Response:**
-
-```json
-{
-  "subscriptionId": "sub-abc123",
-  "url": "https://merchant.example.com/webhooks/swiftdrop",
-  "events": ["StatusChanged", "ParcelDelivered", "DeliveryFailed"],
-  "status": "Active",
-  "createdAt": "2026-10-15T10:00:00Z"
-}
-```
-
-### 3.2 Subscribable Events
-
-| Event                 | Description                                         |
-| --------------------- | --------------------------------------------------- |
-| `StatusChanged`       | Any parcel status transition                        |
-| `ParcelPickedUp`      | Courier picked up the parcel                        |
-| `ParcelDelivered`     | Delivery completed with proof                       |
-| `DeliveryFailed`      | Delivery attempt failed                             |
-
----
-
-## 4. Webhook Payload Format
-
-### 4.1 Payload Structure
-
-```json
-{
-  "id": "evt-550e8400-e29b-41d4-a716-446655440000",
-  "type": "ParcelDelivered",
-  "timestamp": "2026-10-15T14:30:00Z",
-  "merchantId": "merch-abc123",
-  "data": {
-    "parcelId": "parcel-def456",
-    "orderId": "merchant-order-789",
-    "status": "Delivered",
-    "previousStatus": "InTransit",
-    "deliveredAt": "2026-10-15T14:28:00Z",
-    "proofType": "Photo"
-  }
-}
-```
-
-### 4.2 HTTP Headers
-
-| Header                       | Value                                              | Purpose                   |
-| ---------------------------- | -------------------------------------------------- | ------------------------- |
-| `Content-Type`               | `application/json`                                 | Payload format            |
-| `X-SwiftDrop-Signature`      | `sha256={hex_digest}`                              | HMAC signature            |
-| `X-SwiftDrop-Event-Id`       | `evt-{uuid}`                                       | Idempotency / dedup key   |
-| `X-SwiftDrop-Timestamp`      | ISO 8601 UTC                                       | Signing timestamp         |
-| `User-Agent`                 | `SwiftDrop-Webhook/1.0`                            | Identification            |
-
----
-
-## 5. Signature Verification
-
-### 5.1 Signing Process (SwiftDrop)
-
-1. Construct the signing string: `{timestamp}.{json_payload}`
-2. Compute HMAC-SHA256 using the merchant's webhook secret.
-3. Hex-encode the digest.
-4. Set header: `X-SwiftDrop-Signature: sha256={hex_digest}`
-
-### 5.2 Verification Process (Merchant)
-
-Merchants should verify incoming webhooks to ensure authenticity:
+Receiver rejects timestamps with absolute clock skew >300 seconds, verifies HMAC in constant time, then durably deduplicates eventId for that subscription and applies side effects before 2xx. A duplicate valid event returns 2xx without applying effects again. **Recompute timestamp and signature on every HTTP attempt**, retaining eventId and occurredAt; event age is not signature age. Keep clocks synchronized. Manual replay preserves the original eventId: receivers may intentionally deduplicate it, and replay is not a mechanism for applying a business event twice.
 
 ```python
-# Example verification (Python)
-import hmac
-import hashlib
+import hashlib, hmac, time
 
-def verify_webhook(payload_body, timestamp, signature_header, secret):
-    signing_string = f"{timestamp}.{payload_body}"
-    expected = hmac.new(
-        secret.encode(),
-        signing_string.encode(),
-        hashlib.sha256
-    ).hexdigest()
-
-    received = signature_header.replace("sha256=", "")
-    return hmac.compare_digest(expected, received)
+def valid_signature(secret: bytes, body: bytes, timestamp: str, supplied: str) -> bool:
+    try:
+        if not timestamp.isascii() or not timestamp.isdigit():
+            return False
+        if abs(int(time.time()) - int(timestamp)) > 300:
+            return False
+    except (ValueError, OverflowError):
+        return False
+    expected = "sha256=" + hmac.new(secret, timestamp.encode("ascii") + b"." + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, supplied)
 ```
 
-### 5.3 Timestamp Tolerance
+## HTTP retry policy (separate from broker retries)
 
-Merchants should reject webhook payloads where the timestamp is older than **5 minutes** to prevent replay attacks.
+Maximum **six automatic attempts = one initial + five retries**. Delays are relative to the preceding completed failed attempt, not event age.
 
----
+| Attempt | Delay after previous failure | Cumulative minimum delay |
+|---|---|---|
+| 1 | Immediate | 0 |
+| 2 | 1 minute | 1 minute |
+| 3 | 5 minutes | 6 minutes |
+| 4 | 15 minutes | 21 minutes |
+| 5 | 30 minutes | 51 minutes |
+| 6 | 60 minutes | 111 minutes |
 
-## 6. Retry Policy
+2xx succeeds. Timeout/network failure, 408, 429 and 5xx are retryable. For 429/503 honor valid Retry-After (seconds or HTTP date), using max(schedule, Retry-After) capped at 24h and alert; attempt timestamps remain fresh. Other 4xx, 3xx and unsafe destinations fail permanently; do not follow redirects. Persist claimed attempt, request timestamp, result code, duration, nextRetryAt and safe failure reason; a crash/unknown HTTP outcome is retried and receiver deduplication is required. After six failures mark Failed and expose own attempts for inspection/manual audited replay. Broker error queues are not HTTP webhook retry storage.
 
-Failed webhook deliveries (5xx responses or timeouts) are retried with exponential backoff.
+## Destination validation and egress
 
-| Attempt | Delay After Failure | Total Elapsed  |
-| ------- | ------------------- | -------------- |
-| 1       | Immediate           | 0              |
-| 2       | 30 seconds          | 30s            |
-| 3       | 2 minutes           | ~2.5 min       |
-| 4       | 10 minutes          | ~12.5 min      |
-| 5       | 1 hour              | ~1h 12min      |
+At registration **and every send/retry**, parse an absolute HTTPS URL (port 443 only), reject userinfo, fragments, localhost names and IP literals outside public global unicast. Resolve all A/AAAA answers and reject any loopback/private/link-local/metadata/multicast/reserved/unspecified address, including IPv4-mapped IPv6. Re-resolve on send and bind the connection to the validated public address while retaining original Host/TLS hostname validation, preventing DNS rebinding between check and connect. Disable redirects/proxies that bypass validation; a new URL needs a new validated subscription. Outbound egress blocks internal ranges and cloud metadata independently of app validation. Keep a controlled public receiver for integration tests; local test doubles must use an injected transport in tests rather than weakening production SSRF validation.
 
-### Retry Rules
+Set 10s total deadline, ≤64 KiB response read, ≤64 KiB outgoing body and bounded concurrency. Response bodies and query strings are not logged. Test unsafe DNS answers, redirects, rebinding, IPv6, timeouts, 429, signature freshness, replay and duplicate jobs. See [test catalog](../testing/test-cases.md).
 
-- **5xx responses** and **timeouts** (>10s) trigger retries.
-- **4xx responses** (except 429) are **not retried** — they indicate a client-side issue.
-- **429 (Too Many Requests)** is retried respecting the `Retry-After` header if present.
-- After **5 failed attempts**, the event is moved to a dead letter queue and the subscription is flagged for review.
-- The `X-SwiftDrop-Event-Id` header remains the same across retries for merchant-side deduplication.
+## Security reference
 
-### Retry Flow
-
-```mermaid
-flowchart TD
-    start([Webhook event received]) --> attempt[Send HTTP POST to merchant URL]
-    attempt --> response{Response status?}
-
-    response -->|2xx| success[Record success]
-    success --> done([Complete])
-
-    response -->|4xx, not 429| clientError[Record client error]
-    clientError --> noRetry([Do not retry])
-
-    response -->|429| rateLimited[Respect Retry-After header]
-    rateLimited --> scheduleRetry
-
-    response -->|5xx / Timeout| serverError[Record server error]
-    serverError --> retryCheck{Attempts < 5?}
-
-    retryCheck -->|Yes| scheduleRetry[Schedule retry with backoff]
-    scheduleRetry --> attempt
-
-    retryCheck -->|No| dlq[Move to dead letter queue]
-    dlq --> flagSub[Flag subscription for review]
-    flagSub --> alert([Alert admin])
-```
-
----
-
-## 7. Delivery Attempt Tracking
-
-Every webhook delivery attempt is recorded in the `delivery_attempts` table:
-
-| Field              | Description                                    |
-| ------------------ | ---------------------------------------------- |
-| `id`               | Unique attempt identifier                      |
-| `subscription_id`  | The webhook subscription this attempt belongs to |
-| `event_id`         | The event being delivered                      |
-| `attempt_number`   | Sequential attempt number (1–5)                |
-| `status_code`      | HTTP response status code (or 0 for timeout)   |
-| `response_body`    | First 1 KB of response body (for debugging)    |
-| `attempted_at`     | Timestamp of the attempt                       |
-| `next_retry_at`    | Scheduled time for next retry (null if final)  |
-
----
-
-## 8. Subscription Management
-
-| Operation                   | Endpoint                                  | Method  |
-| --------------------------- | ----------------------------------------- | ------- |
-| Register webhook            | `/api/webhooks/subscribe`                 | POST    |
-| List subscriptions          | `/api/webhooks/subscriptions`             | GET     |
-| Update subscription         | `/api/webhooks/subscriptions/{id}`        | PUT     |
-| Deactivate subscription     | `/api/webhooks/subscriptions/{id}`        | DELETE  |
-| View delivery attempts      | `/api/webhooks/subscriptions/{id}/attempts` | GET   |
-| Retry failed event          | `/api/webhooks/attempts/{id}/retry`       | POST    |
-
----
-
-## References
-
-- [Event Catalog](event-catalog.md)
-- [Integration Design](integration-design.md)
-- [Sequence Diagrams — Webhook Delivery](../design/diagrams/sequence/README.md#6-webhook-delivery-to-merchant)
-- [Data Architecture](../architecture/data-architecture.md)
+[OWASP SSRF prevention guidance](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html) informs public destination/DNS/redirect controls. The exact HMAC bytes, retry schedule and Merchant ownership model are SwiftDrop’s proposed contract.
