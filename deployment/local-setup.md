@@ -1,22 +1,30 @@
 # Local Setup: Web, Backend and Flutter
 
-> Status: Proposed onboarding guide · No application source or tested build supplied here
+> Status: Local development workflow documented · Runtime verification pending
 
 ## Repository and toolchain
 
-This repository contains documentation, design contracts and infrastructure reference files only. The organization lists `swiftdrop-backend`, `swiftdrop-frontend`, `swiftdrop-mobile` and `swiftdrop-infra`; OPS must verify access, actual paths/commands and commit links before onboarding is considered tested. There is no assumed swiftdrop-platform monorepo. Install the **.NET 10 SDK** for backend work and verify a 10.x SDK with `dotnet --list-sdks`; API/gateway/Worker projects target `net10.0` and ASP.NET Core 10. Pin the tested 10.x patch/feature band in the backend repository's `global.json`. Obtain Node/Flutter versions and backend dependency pins from the owning source repositories' lock/config files, then record tested versions. Install Git, Docker Engine/Desktop with Compose, an Android SDK/emulator, Java required by the mobile project and Flutter; run `flutter doctor -v` and `flutter devices`.
+This repository contains project documentation and the reference deployment model. The source repositories are `swiftdrop-backend`, `swiftdrop-frontend`, `swiftdrop-mobile` and `swiftdrop-infra`; they remain separate Git repositories, not a monorepo. The infrastructure repository contains the shared local dependency Compose setup. Its Docker startup and the backend/mobile toolchains still need verification on a developer machine. Install the **.NET 10 SDK** pinned by the backend `global.json` and the Node/npm versions specified by the frontend `.nvmrc` and `package.json`. Install Git, Docker Engine/Desktop with Compose, and the frontend dependencies. Mobile tooling is out of scope for this local web/backend setup.
 
 ## Infrastructure and backend
 
-1. Follow [Compose preparation](docker-compose.md), populate ignored `deployment/.env` with unique local-only secrets, and validate `config --quiet`.
-2. Start default infrastructure profile; verify DB bootstrap, broker users, object bucket policy and health. Four DBs share `postgres:5432` with separate app credentials.
-3. In the backend source repository, restore/build, apply **each** Identity/Delivery/Merchant/Notifications migration, and seed roles, a local Admin, zones, pricing and fictional fixtures. Exact project paths and commands require code links; no solution file exists here.
-4. Provision Identity JWT signing keys, Merchant AEAD key and service JWT credentials through ignored mounted files. Configure trusted issuer/audience/JWKS and workload scopes. Do not reuse sample credentials beyond the local demo.
-5. Configure YARP routes and trusted origins from [environment matrix](environments.md); ensure internal routes are unreachable publicly. Build/tag real application images and enable the reference application profile only once the image/migration contract is satisfied.
+1. In `swiftdrop-infra`, copy `.env.example` to ignored `.env`, replace every empty password with a distinct local-only value, and validate with `docker compose --env-file .env config --quiet`. See its [local infrastructure guide](https://github.com/SwiftDrop-Group09/swiftdrop-infra) for exact commands and port mappings.
+2. Start the infrastructure Compose stack and verify RabbitMQ and object-store health/bootstrap. PostgreSQL is managed by Neon and is not a local container. Replace the four per-service TLS connection string examples only after creating the corresponding Neon databases and roles.
+3. In `swiftdrop-backend`, run the documented restore/build/test commands, then start the five local hosts from the backend README. The scaffold currently has liveness and Gateway routing only: it has no database/broker/object-store adapters, migrations, seeds, authentication or feature handlers. Do not treat configured Neon values or provisioned dependencies as backend integration.
+4. Run the frontend development server as described below. Vite proxies `/api` and `/graphql` to the Gateway at `http://localhost:5000`; unimplemented feature routes currently return `404`.
+5. The infrastructure repository now contains backend/frontend image build definitions and an application Compose overlay. Treat it as an early container baseline: image build and runtime smoke tests still need a Docker-enabled host, while migrations, implemented secret-backed authentication and dependency-aware readiness remain future work. Follow the infra README for the exact sibling-repository commands; the docs repository's reference Compose is not the runnable overlay.
 
 ## React
 
-Use the frontend repository's package manager/lockfile and documented install/dev command. Set its public API base to `http://localhost:5000` for loopback, not a container DNS address. Set allowed web origin `http://localhost:5173`; refresh-cookie/CSRF policy must match. React supports all five roles and a safe public tracking page at mobile width. Customer receipt, Merchant dashboard and Admin reports are mandatory UI demo entries.
+Use the frontend repository's documented Node/npm versions and package lockfile:
+
+```sh
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+The development proxy targets `http://localhost:5000` by default and can be changed with `DEV_GATEWAY_TARGET`; browser calls should use same-origin `/api` or `/graphql`, not container DNS names. The starter has no product screens or API calls yet.
 
 ## Flutter Customer and Courier
 

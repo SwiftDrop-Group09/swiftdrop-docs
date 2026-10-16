@@ -11,13 +11,13 @@
 | Delivery gRPC HTTP/2 | Not published | delivery-service:8081 | h2c local only; service JWT mandatory |
 | Merchant HTTP | Through YARP | merchant-service:8080 | Internal dispatch path not externally routed |
 | Worker health HTTP | Not published | notification-worker:8080 | /health and /ready private |
-| PostgreSQL TCP | 127.0.0.1:5432 | postgres:5432 | Four logical DBs, separate *_DB_PASSWORD |
+| PostgreSQL | Neon-managed TLS endpoint | External Neon endpoint | Four logical DBs; separate owner credentials in per-service connection strings; no local DB port |
 | RabbitMQ AMQP | Not published | rabbitmq:5672 | Separate Delivery/Worker users; local internal transport |
 | RabbitMQ console HTTP | http://127.0.0.1:15672 | rabbitmq:15672 | Local admin only; BROKER_ADMIN_PASSWORD |
 | Object API HTTP | Not published | object-store:9000 | Delivery bucket credential only |
 | Object console HTTP | http://127.0.0.1:9001 | object-store:9001 | Local admin only; OBJECT_ROOT_PASSWORD |
 
-There are no database host ports 5433–5435, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in this topology. A logical database's name is part of its connection string, not a new listener. Reference Compose lives at [compose.yaml](compose.yaml); environment variable names are listed in [.env.example](.env.example).
+There are no local database host ports, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in this topology. Neon is external to Compose; each service's database name and credentials are supplied through its own connection string. Reference Compose lives at [compose.yaml](compose.yaml); environment variable names are listed in [.env.example](.env.example).
 
 Delivery's proposed `Operations__TimeZone=Asia/Colombo` sets service-day defaults for assignments and Courier manifests; device timezone/clock cannot change resource scope. Date-based delivery reports retain their explicitly documented UTC history windows.
 

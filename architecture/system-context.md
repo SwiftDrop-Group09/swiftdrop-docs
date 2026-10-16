@@ -83,13 +83,14 @@ flowchart TB
 | Merchant Integration API      | Merchant onboarding, API keys, order ingestion, webhooks, dashboard       |
 | Background Worker             | Notifications, provider jobs and Merchant webhook-dispatch commands                          |
 | RabbitMQ                      | Asynchronous message broker for domain events                             |
-| PostgreSQL Logical Databases (×4)     | Isolated data stores for Identity, Delivery, Merchant and Notifications domains on one instance         |
+| Neon PostgreSQL Logical Databases (×4) | Isolated data stores for Identity, Delivery, Merchant and Notifications domains over managed TLS |
 
 ### 4.2 What Is Outside
 
 | System                        | Interaction                                                                |
 | ----------------------------- | -------------------------------------------------------------------------- |
 | Google Cloud (OIDC)           | Provides user identity; SwiftDrop does not manage Google accounts          |
+| Neon PostgreSQL               | Managed relational database provider; services connect over TLS             |
 | Merchant e-commerce platforms | Consume webhook notifications; SwiftDrop does not control their behavior   |
 | Email / SMS providers         | Notification delivery (mocked for demonstration)                           |
 | Payment gateways              | Out of scope — no billing or payment processing                            |

@@ -111,15 +111,13 @@ for domain, enum in zip(canonical,gql_map):
 
 compose = yaml.safe_load((ROOT/'deployment/compose.yaml').read_text(encoding='utf-8'))
 services = compose['services']
-check('postgres' in services and not any(s.startswith('postgres-') for s in services), 'Database runtime topology drift')
+check('postgres' not in services and not any(s.startswith('postgres-') for s in services), 'Neon database must remain external to Compose')
 for service, db in [('identity-service','identity'),('delivery-service','delivery'),('merchant-service','merchant'),('notification-worker','notifications')]:
     env = services[service]['environment']
-    check(f'Database=swiftdrop_{db};Username={db}_app;' in env['ConnectionStrings__Database'], f'Wrong DB owner {service}')
+    check(f'${{{db.upper()}_DATABASE_CONNECTION_STRING:' in env['ConnectionStrings__Database'], f'Wrong Neon DB configuration {service}')
     check('healthcheck' in services[service], f'No readiness check {service}')
 check('merchant' not in services['notification-worker']['environment']['ConnectionStrings__Database'], 'Worker foreign DB access')
 check(not any('redis' in k for k in services), 'Unexpected Redis dependency')
-sql = (ROOT/'deployment/postgres/init-databases.sh').read_text(encoding='utf-8')
-check(sql.count('CREATE DATABASE swiftdrop_') == 4, 'Bootstrap must create four logical DBs')
 
 with tempfile.TemporaryDirectory(prefix='swiftdrop-proto-') as temp:
     result = subprocess.run([sys.executable,'-m','grpc_tools.protoc','-I',str(ROOT/'api/contracts'),f'--descriptor_set_out={temp}/delivery.pb',str(ROOT/'api/contracts/delivery.proto')],text=True,capture_output=True,env={**__import__('os').environ,'PYTHONPATH':str(local_lib) if local_lib.exists() else __import__('os').environ.get('PYTHONPATH','')})

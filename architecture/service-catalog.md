@@ -21,7 +21,7 @@ Flutter Customer and Courier call YARP; they are clients, not extra backend serv
 
 | Process | Container address | Host binding | Purpose |
 |---|---|---|---|
-| postgres | postgres:5432 | 127.0.0.1:5432 | One instance, **four logical databases**, four application logins and separate migrations |
+| Neon PostgreSQL | External TLS endpoint | Not published locally | Four logical databases, separate application logins and migrations; managed outside Compose/Kubernetes |
 | rabbitmq | rabbitmq:5672; management 15672 | 127.0.0.1:15672 management only | AMQP, per-message-type fanout exchanges |
 | object-store | object-store:9000; console 9001 | 127.0.0.1:9001 console only | Private proofs and receipts |
 

@@ -16,7 +16,7 @@ The runtime/SDK and TFM naming follow [Microsoft's .NET 10 overview](https://lea
 
 ## Structure and reliability
 
-Each API uses presentation → application handlers → domain rules → infrastructure adapters. REST, GraphQL and internal gRPC share domain policies, price calculation, ownership and concurrency guards. Four private logical databases share one PostgreSQL instance; four credentials isolate owners. Database transactions never span services. Merchant ingestion commits an inbox job first, then calls idempotent Delivery `CreateBooking` with durable reconciliation after timeout.
+Each API uses presentation → application handlers → domain rules → infrastructure adapters. REST, GraphQL and internal gRPC share domain policies, price calculation, ownership and concurrency guards. Four private logical databases are hosted by Neon PostgreSQL; four credentials isolate owners. Database transactions never span services. Merchant ingestion commits an inbox job first, then calls idempotent Delivery `CreateBooking` with durable reconciliation after timeout.
 
 Delivery atomically commits parcel/history/version/outbox before acknowledging. Its relay publishes `StatusChanged` through MassTransit per-message-type fanout topology. The Worker creates durable notification/provider and webhook-dispatch jobs; Merchant owns webhook subscriptions, encrypted secrets and HTTP attempts. Delivery consumes its own realtime queue to signal authenticated SSE clients. Duplicate effects are prevented with durable uniqueness constraints.
 

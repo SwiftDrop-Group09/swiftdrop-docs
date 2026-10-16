@@ -2,7 +2,7 @@
 
 > Status: Proposed baseline 2.0 · 16 October 2026 · DEC-04/06/10/12
 
-One PostgreSQL instance at `postgres:5432` hosts four **logical databases**, each with one owner login and separate EF migrations. The host publishes only loopback 5432; logical databases do not have separate network ports. Applications cannot connect to another owner's DB. Administrators bootstrap database roles; application logins have no cluster administration rights.
+Neon-managed PostgreSQL hosts four **logical databases**, each with one owner login and separate EF migrations. Neon is external to local Compose and Kubernetes workloads; applications connect over TLS using per-service connection strings. Applications cannot connect to another owner's DB. Administrators provision database roles; application logins have no cluster administration rights.
 
 | Database | Owner/login | Entities and invariants |
 |---|---|---|
@@ -31,7 +31,7 @@ Download proof/receipt only via authenticated Delivery endpoints after ownership
 
 ## Migrations and retention
 
-The [Compose reference](../deployment/docker-compose.md) creates all databases and owner roles before API startup. Each future image must run a single explicit migration task before readiness; production-style multi-replica automatic migrations are not promised. Verify notification migrations as well as the three APIs. Retain demonstration parcel/history records until an approved deletion policy exists. Purge expired refresh sessions, notification/provider and webhook attempt records after 30 days; never delete unresolved jobs or idempotency tombstones required for deduplication. Logs contain IDs/codes, not credentials or contact/address payloads. Backups, restore verification and retention acceptance remain implementation tasks.
+Neon databases and owner roles must be provisioned before API startup. Each future image must run a single explicit migration task before readiness; production-style multi-replica automatic migrations are not promised. Verify notification migrations as well as the three APIs. Retain demonstration parcel/history records until an approved deletion policy exists. Purge expired refresh sessions, notification/provider and webhook attempt records after 30 days; never delete unresolved jobs or idempotency tombstones required for deduplication. Logs contain IDs/codes, not credentials or contact/address payloads. Backups, restore verification and retention acceptance remain implementation tasks.
 
 Keep the Delivery eventId→parcel/version provenance index (outbox/history reference) for at least the 30-day consumer replay horizon and for all unresolved notification jobs. NotificationContext must remain able to validate an old but pending event after a broker outage; an outbox cleanup must not make durable jobs unresolvable. Merchant dashboard projections store authoritative Delivery terminal timestamps, never the local polling time.
 

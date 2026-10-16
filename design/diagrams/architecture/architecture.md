@@ -37,7 +37,7 @@ flowchart LR
 
 Identity owns users/local passwords/provider subjects/refresh/roles. Delivery owns quotes, parcels, status/history/outbox, assignment, private proof/receipt, reports, GraphQL and SSE. Merchant owns businesses/API keys, durable order inbox/reconciliation, subscriptions, encrypted signing secrets and HTTP webhook attempts. Worker owns notification inbox/jobs/provider attempts and durable commands requesting Merchant dispatch. Worker cannot read Merchant DB or sign webhooks itself.
 
-One PostgreSQL instance at 5432 hosts four isolated logical databases and users; object storage is private to Delivery. Merchant→Delivery CreateBooking/GetBookingByExternalOrder are the only proposed gRPC methods. Google SDK returns an ID token; Identity validates it and issues application tokens, with no automatic email linking. A booking exists only after fee confirmation; status/history/outbox commit before asynchronous notification. SSE runs in a single Delivery instance and heals reconnect through snapshot/version recovery.
+Neon PostgreSQL hosts four isolated logical databases and users behind external TLS connection strings; it is not a local Compose/Kubernetes workload. Object storage is private to Delivery. Merchant→Delivery CreateBooking/GetBookingByExternalOrder are the only proposed gRPC methods. Google SDK returns an ID token; Identity validates it and issues application tokens, with no automatic email linking. A booking exists only after fee confirmation; status/history/outbox commit before asynchronous notification. SSE runs in a single Delivery instance and heals reconnect through snapshot/version recovery.
 
 ## Sources and rendered artifacts
 

@@ -6,35 +6,10 @@ networks:
   egress: {}
 
 volumes:
-  postgres-data: {}
   broker-data: {}
   object-data: {}
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set a generated local admin password}
-      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set a distinct password}
-      DELIVERY_DB_PASSWORD: ${DELIVERY_DB_PASSWORD:?Set a distinct password}
-      MERCHANT_DB_PASSWORD: ${MERCHANT_DB_PASSWORD:?Set a distinct password}
-      NOTIFICATIONS_DB_PASSWORD: ${NOTIFICATIONS_DB_PASSWORD:?Set a distinct password}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-databases.sh:ro
-    ports: ["127.0.0.1:5432:5432"]
-    networks: [backend]
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - >-
-          pg_isready -U postgres &&
-          test $$(psql -U postgres -d postgres -tAc "SELECT count(*) FROM pg_database WHERE datname IN ('swiftdrop_identity','swiftdrop_delivery','swiftdrop_merchant','swiftdrop_notifications')") = 4
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   rabbitmq:
     image: rabbitmq:4-management
     hostname: rabbitmq
@@ -99,13 +74,11 @@ services:
     image: ${IDENTITY_IMAGE:-swiftdrop/identity:design-unbuilt}
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_identity;Username=identity_app;Password=${IDENTITY_DB_PASSWORD}
+      ConnectionStrings__Database: ${IDENTITY_DATABASE_CONNECTION_STRING:?Set the Identity Neon connection string}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Google__WebClientId: ${GOOGLE_WEB_CLIENT_ID}
       Google__AndroidClientId: ${GOOGLE_ANDROID_CLIENT_ID}
-    depends_on:
-      postgres: {condition: service_healthy}
     networks: [backend, egress]
     healthcheck:
       test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
@@ -120,7 +93,7 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       Grpc__Port: "8081"
       Operations__TimeZone: Asia/Colombo
-      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_delivery;Username=delivery_app;Password=${DELIVERY_DB_PASSWORD}
+      ConnectionStrings__Database: ${DELIVERY_DATABASE_CONNECTION_STRING:?Set the Delivery Neon connection string}
       Broker__Host: rabbitmq
       Broker__Username: delivery_bus
       Broker__Password: ${DELIVERY_BROKER_PASSWORD}
@@ -132,11 +105,10 @@ services:
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
     depends_on:
-      postgres: {condition: service_healthy}
       broker-init: {condition: service_completed_successfully}
       object-init: {condition: service_completed_successfully}
       identity-service: {condition: service_healthy}
-    networks: [backend]
+    networks: [backend, egress]
     healthcheck:
       test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
       interval: 10s
@@ -148,13 +120,12 @@ services:
     image: ${MERCHANT_IMAGE:-swiftdrop/merchant:design-unbuilt}
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_merchant;Username=merchant_app;Password=${MERCHANT_DB_PASSWORD}
+      ConnectionStrings__Database: ${MERCHANT_DATABASE_CONNECTION_STRING:?Set the Merchant Neon connection string}
       Delivery__GrpcAddress: http://delivery-service:8081
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
       Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
     depends_on:
-      postgres: {condition: service_healthy}
       delivery-service: {condition: service_healthy}
     networks: [backend, egress]
     healthcheck:
@@ -168,7 +139,7 @@ services:
     image: ${WORKER_IMAGE:-swiftdrop/notification-worker:design-unbuilt}
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__Database: Host=postgres;Database=swiftdrop_notifications;Username=notifications_app;Password=${NOTIFICATIONS_DB_PASSWORD}
+      ConnectionStrings__Database: ${NOTIFICATIONS_DATABASE_CONNECTION_STRING:?Set the Notifications Neon connection string}
       Broker__Host: rabbitmq
       Broker__Username: worker_bus
       Broker__Password: ${WORKER_BROKER_PASSWORD}
@@ -177,10 +148,9 @@ services:
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__JwksUri: http://identity-service:8080/.well-known/jwks.json
     depends_on:
-      postgres: {condition: service_healthy}
       broker-init: {condition: service_completed_successfully}
       merchant-service: {condition: service_healthy}
-    networks: [backend]
+    networks: [backend, egress]
     healthcheck:
       test: ["CMD", "/app/healthcheck", "http://localhost:8080/ready"]
       interval: 10s
@@ -213,7 +183,7 @@ services:
     image: ${WEB_IMAGE:-swiftdrop/web:design-unbuilt}
     environment:
       PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL}
-    ports: ["127.0.0.1:5173:80"]
+    ports: ["127.0.0.1:5173:8080"]
     depends_on:
       gateway: {condition: service_healthy}
     networks: [egress]
