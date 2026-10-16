@@ -1,0 +1,50 @@
+@startuml
+title Courier status and asynchronous notifications — Proposed 2.0
+skinparam shadowing false
+|Flutter Courier|
+start
+:Send status or proof completion with version/key;
+|Delivery API|
+if (Role, current assignment, version and transition valid?) then (yes)
+else (no)
+  :401/403/404/409; no state change;
+  stop
+endif
+if (Completing Delivered?) then (yes)
+  :Validate required proof and stage private object;
+  if (Storage confirmed?) then (yes)
+  else (no)
+    :503; state unchanged;
+    stop
+  endif
+endif
+:Attempt atomic versioned status + history + StatusChanged outbox transaction;
+if (Commit succeeds?) then (yes)
+  :Return 200 committed state;
+else (no)
+  :409; leave staged object for orphan cleanup;
+  stop
+endif
+|Delivery outbox relay|
+:Publish after commit; retry until broker confirmation;
+fork
+  |Notification Worker|
+  :Deduplicate event and resolve minimum recipient IDs;
+  :Commit inbox + unique notification/provider/dispatch jobs;
+  :ACK broker after commit;
+  :Persist in-app update; send mock provider notification;
+  if (Merchant-originated parcel?) then (yes)
+    :Call Merchant DispatchWebhook with service JWT;
+    |Merchant API|
+    :Persist unique subscription jobs;
+    :Validate destination, decrypt key, fresh timestamp/HMAC;
+    :Send HTTPS; persist attempt and scheduled retries;
+  endif
+fork again
+  |Delivery realtime consumer|
+  :Read latest DB version;
+  :Recheck viewer authorization;
+  :Send SSE snapshot; reconnect refetches current state;
+end fork
+stop
+@enduml

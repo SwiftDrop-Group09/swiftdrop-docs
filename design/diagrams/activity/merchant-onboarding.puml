@@ -1,0 +1,23 @@
+@startuml
+title Merchant onboarding and admin approval — Proposed 2.0
+skinparam shadowing false
+|Applicant|
+start
+:RegisterMerchant with authenticated own details;
+|Merchant API|
+:Validate input; create Pending business;
+|React Admin|
+:Review application;
+if (Approve?) then (yes)
+  |Merchant API|
+  :SetMerchantStatus Approved; audit;
+  |React Admin|
+  :Provision verified membership/role through Identity admin;
+  |Merchant owner|
+  :CreateApiKey; copy one-time secret securely;
+else (no)
+  |Merchant API|
+  :Set Rejected with reason; no API key access;
+endif
+stop
+@enduml

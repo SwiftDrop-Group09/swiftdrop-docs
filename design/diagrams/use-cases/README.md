@@ -1,6 +1,6 @@
 # Use Case Diagrams
 
-> **Status:** Draft  
+> **Status:** Proposed baseline 2.0
 > **Last Updated:** October 2026
 
 This document contains use case diagrams for all five system actors in SwiftDrop. Each diagram maps the actor to their available system functions as defined in the [SRS](../../../requirements/srs.md).
@@ -65,7 +65,7 @@ flowchart LR
         end
     end
 
-    subgraph actors_right[""]
+    subgraph actors_right["Merchant Actors"]
         merchantUser["🏪 Merchant"]
         merchantSys["⚙️ Merchant System"]
         adminUser["🔧 Admin"]
@@ -297,3 +297,10 @@ flowchart LR
 - [Requirements Traceability](../../../requirements/requirements-traceability.md)
 - [Activity Diagrams](../activity/README.md)
 - [Sequence Diagrams](../sequence/README.md)
+
+
+## Narrative, client and mandatory acceptance links
+
+The diagrams above are actor/capability maps; the [standardized use-case specifications](../../../requirements/use-case-specifications.md) govern preconditions, authorization, success, alternatives, exceptions, state and trace IDs. [Diagram index](../README.md) maps the four mandatory scenarios to explicit sequence/activity pairs. Customer booking/tracking/history/receipt run in React and **Flutter Customer**; courier manifest/status/failure/proof run in React and **Flutter Courier**. Dispatcher, Merchant and Admin use React.
+
+FR-C08 receipt, FR-M06 merchant own-order/status dashboard and FR-A06 deliveries/day plus success/failure reports are **Must**. Public tracking is mobile-friendly and privacy-limited. All use-case/implementation approvals remain pending; maps are not proof of delivered functionality. The [permission matrix](../../../security/authorization.md) and [state machine](../../../architecture/parcel-state-machine.md) override broad actor associations where a guard is required.

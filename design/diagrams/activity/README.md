@@ -1,198 +1,53 @@
-# Activity Diagrams
+# UML Activity Diagrams
 
-> **Status:** Draft  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · Formal PlantUML activities with swimlanes · Owner/review pending
 
-This document contains activity diagrams for key business processes in the SwiftDrop system. Activity diagrams model the flow of activities, decision points, and parallel paths within a process.
+The first four cover required assignment workflows. Swimlanes model actors/processes, guards model alternatives, and the courier activity forks only after the committed outbox is published. See [narratives](../../../requirements/use-case-specifications.md), [contracts](../../../api/rest-api.md) and [index](../README.md).
 
----
+## Customer fee confirmation and booking
 
-## 1. Parcel Delivery Lifecycle
+ID: ACT-customer-booking; UC-01; FR-C04 FR-C05 NFR-10 NFR-11. Owner and approval date pending.
 
-This diagram models the complete lifecycle of a parcel from booking creation through to delivery completion or failure handling.
+[Editable PlantUML](customer-booking.puml) · [Rendered SVG](customer-booking.svg)
 
-```mermaid
-flowchart TD
-    start([Customer initiates booking]) --> estimate[Calculate fee estimate]
-    estimate --> showFee{Customer accepts fee?}
+![Customer fee confirmation and booking](customer-booking.svg)
 
-    showFee -->|No| cancel([Booking cancelled])
-    showFee -->|Yes| createBooking[Create parcel booking]
+## Secured merchant order and reconciliation
 
-    createBooking --> checkIdem{Idempotency key exists?}
-    checkIdem -->|Yes| returnExisting[Return existing booking]
-    checkIdem -->|No| persist[Persist parcel + price snapshot + outbox event]
+ID: ACT-merchant-order; UC-02; FR-M03 FR-M04 FR-M06 FR-M07 NFR-10. Owner and approval date pending.
 
-    persist --> statusPending[Status: Pending]
-    returnExisting --> statusPending
+[Editable PlantUML](merchant-order.puml) · [Rendered SVG](merchant-order.svg)
 
-    statusPending --> confirmed[Status: Confirmed]
-    confirmed --> waitAssign[Await dispatcher assignment]
+![Secured merchant order and reconciliation](merchant-order.svg)
 
-    waitAssign --> assignCourier[Dispatcher assigns courier]
-    assignCourier --> statusAssigned[Status: Assigned]
+## Courier status and asynchronous notifications
 
-    statusAssigned --> courierPickup{Courier picks up parcel?}
-    courierPickup -->|Yes| statusPickedUp[Status: Picked Up]
-    courierPickup -->|No timeout| reassign{Reassign to another courier?}
+ID: ACT-courier-status-notification; UC-03; FR-R02 FR-R03 FR-R04 FR-C06 FR-M05 NFR-11. Owner and approval date pending.
 
-    reassign -->|Yes| assignCourier
-    reassign -->|No| escalate[Escalate to dispatcher]
-    escalate --> assignCourier
+[Editable PlantUML](courier-status-notification.puml) · [Rendered SVG](courier-status-notification.svg)
 
-    statusPickedUp --> statusInTransit[Status: In Transit]
-    statusInTransit --> deliveryAttempt{Delivery successful?}
+![Courier status and asynchronous notifications](courier-status-notification.svg)
 
-    deliveryAttempt -->|Yes| uploadProof[Courier uploads proof of delivery]
-    uploadProof --> statusDelivered[Status: Delivered]
-    statusDelivered --> generateReceipt[Generate delivery receipt]
-    generateReceipt --> notifyCustomer[Notify customer]
-    notifyCustomer --> publishEvent[Publish ParcelDelivered event]
-    publishEvent --> webhookCheck{Merchant order?}
-    webhookCheck -->|Yes| sendWebhook[Send webhook to merchant]
-    webhookCheck -->|No| complete([Delivery complete])
-    sendWebhook --> complete
+## Google ID-token login and explicit linking
 
-    deliveryAttempt -->|No| reportFailure[Courier reports failure + reason]
-    reportFailure --> statusFailed[Status: Failed]
-    statusFailed --> failureReview{Retry delivery?}
-    failureReview -->|Yes| assignCourier
-    failureReview -->|No| returnToSender([Return to sender])
-```
+ID: ACT-google-login; UC-04; FR-C02 NFR-05 NFR-08. Owner and approval date pending.
 
----
+[Editable PlantUML](google-login.puml) · [Rendered SVG](google-login.svg)
 
-## 2. Merchant Onboarding and Approval
+![Google ID-token login and explicit linking](google-login.svg)
 
-This diagram models the merchant registration, admin review, and integration setup process.
+## Merchant onboarding and admin approval
 
-```mermaid
-flowchart TD
-    start([Merchant submits registration]) --> validate[Validate business details]
-    validate --> validCheck{Details valid?}
+ID: ACT-merchant-onboarding; Supporting; FR-M01 FR-M02 FR-A03. Owner and approval date pending.
 
-    validCheck -->|No| reject1[Return validation errors]
-    reject1 --> start
+[Editable PlantUML](merchant-onboarding.puml) · [Rendered SVG](merchant-onboarding.svg)
 
-    validCheck -->|Yes| createAccount[Create merchant account]
-    createAccount --> statusPending[Status: Pending Approval]
+![Merchant onboarding and admin approval](merchant-onboarding.svg)
 
-    statusPending --> notifyAdmin[Notify admin of new application]
-    notifyAdmin --> adminReview[Admin reviews application]
+## Assignment and capacity/version checks
 
-    adminReview --> decision{Admin decision}
+ID: ACT-assignment-workload; Supporting; FR-D01 FR-D02 FR-D03 FR-D04 FR-D05. Owner and approval date pending.
 
-    decision -->|Approve| approve[Set status: Approved]
-    approve --> notifyMerchant[Notify merchant of approval]
-    notifyMerchant --> setupPhase[Merchant setup phase]
+[Editable PlantUML](assignment-workload.puml) · [Rendered SVG](assignment-workload.svg)
 
-    setupPhase --> generateKeys[Generate API keys]
-    generateKeys --> configWebhooks[Configure webhook URLs]
-    configWebhooks --> testIntegration[Test integration with sandbox]
-    testIntegration --> integrationReady{Tests pass?}
-
-    integrationReady -->|Yes| goLive([Merchant goes live])
-    integrationReady -->|No| troubleshoot[Review and fix configuration]
-    troubleshoot --> testIntegration
-
-    decision -->|Reject| rejectApp[Set status: Rejected]
-    rejectApp --> notifyRejection[Notify merchant with reason]
-    notifyRejection --> endReject([Application closed])
-
-    decision -->|Request Info| requestInfo[Request additional information]
-    requestInfo --> merchantResponds[Merchant submits additional info]
-    merchantResponds --> adminReview
-```
-
----
-
-## 3. Courier Assignment and Workload Management
-
-This diagram models how dispatchers manage courier assignments based on workload and zone considerations.
-
-```mermaid
-flowchart TD
-    start([New parcel confirmed]) --> enterQueue[Parcel enters assignment queue]
-    enterQueue --> dispatchView[Dispatcher views unassigned parcels]
-
-    dispatchView --> selectParcel[Select parcel for assignment]
-    selectParcel --> identifyZone[Identify delivery zone]
-    identifyZone --> listCouriers[List available couriers in zone]
-
-    listCouriers --> checkAvail{Couriers available?}
-    checkAvail -->|No| expandZone{Expand to adjacent zones?}
-    expandZone -->|Yes| listCouriers
-    expandZone -->|No| waitQueue[Keep in queue, alert dispatcher]
-    waitQueue --> dispatchView
-
-    checkAvail -->|Yes| viewWorkload[View courier current workload]
-    viewWorkload --> selectCourier[Select courier with capacity]
-
-    selectCourier --> assign[Assign courier to parcel]
-    assign --> notifyCourier[Notify courier of new assignment]
-    notifyCourier --> courierResponse{Courier acknowledges?}
-
-    courierResponse -->|Yes| inProgress([Assignment active])
-    courierResponse -->|No timeout| autoReassign{Auto-reassign?}
-    autoReassign -->|Yes| selectCourier
-    autoReassign -->|No| manualReview[Flag for dispatcher review]
-    manualReview --> dispatchView
-```
-
----
-
-## 4. User Authentication Decision Flow
-
-This diagram models the authentication decision process including new user registration vs. existing user login.
-
-```mermaid
-flowchart TD
-    start([User opens application]) --> authCheck{Already authenticated?}
-
-    authCheck -->|Yes, valid token| dashboard([Show dashboard])
-    authCheck -->|Yes, expired token| refreshFlow[Attempt token refresh]
-
-    refreshFlow --> refreshValid{Refresh token valid?}
-    refreshValid -->|Yes| issueNewTokens[Issue new access + refresh tokens]
-    issueNewTokens --> dashboard
-    refreshValid -->|No| loginRequired[Redirect to login]
-
-    authCheck -->|No| loginRequired
-
-    loginRequired --> loginMethod{Login method}
-
-    loginMethod -->|Google OIDC| googleRedirect[Redirect to Google consent]
-    googleRedirect --> googleAuth[User authenticates with Google]
-    googleAuth --> receiveCode[Receive authorization code]
-    receiveCode --> exchangeCode[Exchange code for Google tokens]
-    exchangeCode --> validateIdToken[Validate Google ID token]
-
-    validateIdToken --> userExists{User exists in system?}
-    userExists -->|Yes| linkCheck{External identity linked?}
-    linkCheck -->|Yes| issueAppTokens[Issue application JWT + refresh token]
-    linkCheck -->|No| linkIdentity[Link external identity to user]
-    linkIdentity --> issueAppTokens
-
-    userExists -->|No| createUser[Create new user account]
-    createUser --> assignRole[Assign default Customer role]
-    assignRole --> linkNewIdentity[Link external identity]
-    linkNewIdentity --> issueAppTokens
-
-    loginMethod -->|Email + Password| emailLogin[Submit credentials]
-    emailLogin --> validateCreds{Credentials valid?}
-    validateCreds -->|Yes| issueAppTokens
-    validateCreds -->|No| showError[Show authentication error]
-    showError --> loginRequired
-
-    issueAppTokens --> auditLog[Write audit log entry]
-    auditLog --> dashboard
-```
-
----
-
-## References
-
-- [Sequence Diagrams](../sequence/README.md)
-- [Use Case Diagrams](../use-cases/README.md)
-- [SRS](../../../requirements/srs.md)
-- [Architecture Diagram](../architecture/architecture.md)
+![Assignment and capacity/version checks](assignment-workload.svg)

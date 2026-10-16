@@ -1,0 +1,54 @@
+sequenceDiagram
+    autonumber
+    participant C as Flutter Courier
+    participant Y as YARP
+    participant D as Delivery API and local relay
+    participant DB as Delivery DB
+    participant O as Private object storage
+    participant B as RabbitMQ
+    participant W as Notification Worker
+    participant NDB as Notifications DB
+    participant M as Merchant API and dispatcher
+    participant MDB as Merchant DB
+    participant E as Merchant HTTPS receiver
+    participant V as Authorized React/Flutter viewer
+    C->>Y: UpdateDeliveryStatus or CompleteDeliveryWithProof
+    Y->>D: JWT, expectedVersion, Idempotency-Key
+    D->>D: Check role, current assignment and valid transition
+    alt Unauthorized, stale or invalid state
+        D-->>C: 401 / 403 / 404 / 409, no effects
+    else Authorized
+        opt CompleteDeliveryWithProof only
+            D->>O: Validate and stage photo/signature
+            O-->>D: Persistence confirmed or storage failure
+            Note over D,O: Failure returns 503 unchanged, DB conflict later leaves cleanup orphan
+        end
+        opt Required proof conditions met (or non-proof status)
+            D->>DB: Atomic versioned status + history + StatusChanged outbox + response
+            DB-->>D: Commit
+            D-->>C: 200 committed status/version
+            D->>B: Relay publishes StatusChanged after commit
+            par Durable notifications
+                B->>W: notification-status queue
+                W->>D: NotificationContext(eventId, parcelId, version) service JWT
+                D-->>W: Minimum authorized recipient IDs
+                W->>NDB: Atomic inbox + unique notification/provider/dispatch jobs
+                W-->>B: ACK only after durable commit
+                W->>W: In-app record and mock provider send
+                opt merchantId exists
+                    W->>M: DispatchWebhook event, scoped service JWT
+                    M->>MDB: Deduplicate and persist subscription jobs
+                    M-->>W: 202 durable acceptance
+                    M->>M: SSRF checks, decrypt secret, fresh timestamp/HMAC
+                    M->>E: Signed HTTPS POST
+                    E-->>M: 2xx or retryable failure
+                    M->>MDB: Record attempt, six-attempt retry policy
+                end
+            and Authorized current status
+                B->>D: delivery-realtime queue
+                D->>DB: Read latest committed version
+                D-->>V: Authenticated SSE snapshot
+            end
+            Note over B,M: Stable eventId and unique effect keys suppress duplicate jobs
+        end
+    end

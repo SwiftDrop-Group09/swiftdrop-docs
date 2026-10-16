@@ -1,0 +1,41 @@
+sequenceDiagram
+    autonumber
+    participant S as Merchant system
+    participant Y as YARP
+    participant M as Merchant API and inbox processor
+    participant MDB as Merchant DB
+    participant D as DeliveryService gRPC
+    participant DDB as Delivery DB
+    S->>Y: POST /api/v1/merchant/orders (SubmitMerchantOrder)
+    Y->>M: X-API-Key, externalOrderId, Idempotency-Key
+    M->>M: Check approved business, key scope and payload
+    alt Invalid key/scope/input
+        M-->>S: 401 / 403 / 400
+    else Valid request
+        M->>MDB: Atomic unique merchant+externalOrderId inbox job and fingerprint
+        alt Changed duplicate payload
+            M-->>S: 409 conflict
+        else Accepted or identical duplicate
+            M-->>S: 202 jobId and Location, no fabricated parcel ID
+            M->>D: CreateBooking(stable merchant/order identity) service JWT
+            D->>DDB: Unique identity, parcel + snapshot + history + outbox
+            alt Known result
+                D-->>M: BookingResult
+                M->>MDB: Job Created with parcel/tracking
+            else Deadline/unavailable, result unknown
+                M->>MDB: Persist Retrying and schedule
+                M->>D: GetBookingByExternalOrder(merchantId, externalOrderId)
+                alt Existing parcel found
+                    D-->>M: BookingResult
+                    M->>MDB: Job Created
+                else NotFound
+                    M->>D: Retry CreateBooking with SAME identity and fingerprint
+                end
+            else Permanent domain rejection
+                M->>MDB: Job Failed with safe code
+            end
+            S->>Y: GET /api/v1/merchant/orders/{id} (GetMerchantOrder)
+            Y->>M: Own-business authorization
+            M-->>S: Accepted / Retrying / Created / Failed
+        end
+    end
