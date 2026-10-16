@@ -1,7 +1,7 @@
 # System Context
 
-> **Status:** Draft  
-> **Version:** 1.0  
+> **Status:** Proposed baseline 2.0
+> **Version:** 1.0
 > **Last Updated:** October 2026
 
 This document describes the SwiftDrop system context using the [C4 model](https://c4model.com/) Level 1 perspective. It identifies the system boundary, external actors, and integration points.
@@ -81,9 +81,9 @@ flowchart TB
 | Identity API                  | User accounts, authentication, JWT issuance, JWKS, roles, audit           |
 | Delivery Operations API       | Parcel booking, assignment, tracking, receipts, reporting                  |
 | Merchant Integration API      | Merchant onboarding, API keys, order ingestion, webhooks, dashboard       |
-| Background Worker             | Outbox relay, webhook delivery, queue processing                          |
+| Background Worker             | Notifications, provider jobs and Merchant webhook-dispatch commands                          |
 | RabbitMQ                      | Asynchronous message broker for domain events                             |
-| PostgreSQL Databases (×3)     | Isolated data stores for Identity, Delivery, and Merchant domains         |
+| PostgreSQL Logical Databases (×4)     | Isolated data stores for Identity, Delivery, Merchant and Notifications domains on one instance         |
 
 ### 4.2 What Is Outside
 
@@ -104,13 +104,13 @@ The following table summarizes all communication paths crossing the system bound
 | --------------------- | --------------------- | ---------------- | -------------------- | -------------------------------------- |
 | React SPA             | API Gateway           | HTTPS + SSE      | Bearer JWT           | All user operations, real-time tracking|
 | Flutter App           | API Gateway           | HTTPS + SSE      | Bearer JWT           | All user operations, real-time tracking|
-| Merchant System       | API Gateway           | REST / HTTPS     | API Key (HMAC)       | Order submission, status queries       |
+| Merchant System       | API Gateway           | REST / HTTPS     | X-API-Key (hashed at rest)       | Order submission, status queries       |
 | API Gateway           | Identity API          | HTTP (internal)  | —                    | Auth, user management                  |
 | API Gateway           | Delivery Ops API      | HTTP (internal)  | —                    | Booking, tracking, dispatch            |
 | API Gateway           | Merchant API          | HTTP (internal)  | —                    | Merchant routes                        |
-| Delivery Ops API      | Merchant API          | gRPC             | Service JWT          | Booking/query operations               |
-| Identity API          | Google OIDC           | HTTPS / OIDC     | Client credentials   | Token exchange, user info              |
-| Background Worker     | Merchant Webhooks     | HTTPS            | HMAC-SHA256 signature| Delivery status events                 |
+| Merchant API          | Delivery Ops API      | gRPC             | Service JWT          | CreateBooking and GetBookingByExternalOrder               |
+| Identity API          | Google OIDC           | HTTPS / OIDC     | Public JWKS validation | Validate client SDK ID token              |
+| Merchant API          | Merchant Webhooks     | HTTPS            | HMAC-SHA256 signature| Delivery status events                 |
 | Services              | RabbitMQ              | AMQP             | —                    | Domain events (publish/subscribe)      |
 | Services              | PostgreSQL            | TCP              | Connection string    | Data persistence                       |
 
@@ -123,3 +123,6 @@ The following table summarizes all communication paths crossing the system bound
 - [Service Catalog](service-catalog.md)
 - [Integration Design](../integration/integration-design.md)
 - [SRS](../requirements/srs.md)
+
+
+Worker→Merchant uses the scoped DispatchWebhook API, never Merchant SQL or signing secrets. Delivery owns its local outbox relay and authenticated SSE. Flutter Customer and Courier are mandatory client experiences. [Canonical service catalog](service-catalog.md) governs process/network details; [decisions](decisions/README.md) remain Proposed. Redis/GPS/SignalR are deferred; Kubernetes/AI are independent bonuses.

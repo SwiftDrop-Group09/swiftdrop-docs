@@ -1,202 +1,32 @@
 # Data Architecture
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · 16 October 2026 · DEC-04/06/10/12
 
----
+One PostgreSQL instance at `postgres:5432` hosts four **logical databases**, each with one owner login and separate EF migrations. The host publishes only loopback 5432; logical databases do not have separate network ports. Applications cannot connect to another owner's DB. Administrators bootstrap database roles; application logins have no cluster administration rights.
 
-## 1. Overview
+| Database | Owner/login | Entities and invariants |
+|---|---|---|
+| swiftdrop_identity | Identity / identity_app | users (normalized email unique, nullable password_hash, is_active), roles, user_roles, external_identities (provider+subject unique), refresh_sessions (token_hash, family, expiry, revoked), audit_logs |
+| swiftdrop_delivery | Delivery / delivery_app | quotes (owner, request fingerprint, pricing version, expires_at, used_by), parcels (customer_id or merchant_id+external_order_id, canonical status, version), assignments, immutable price_snapshots, booking_history, proof_metadata, idempotency_keys, outbox_messages, realtime consumer inbox, zones, pricing_tiers |
+| swiftdrop_merchant | Merchant / merchant_app | businesses, api_keys (key_id, hash, salt, scopes, active), inbox_jobs (merchant_id+external_order_id unique, fingerprint, state, next_retry_at, parcel_id, parcel_status/version, last_status_changed_at, terminal_at), webhook_subscriptions, encrypted_secrets (ciphertext, nonce, key_version), webhook_jobs, webhook_attempts, dispatch inbox |
+| swiftdrop_notifications | Worker / notifications_app | inbox_messages (consumer+event_id unique), notification_jobs (event_id+recipient_id+channel unique), provider_attempts, notification_logs, webhook_dispatch_jobs (event_id+merchant_id unique) |
 
-SwiftDrop follows a **database-per-service** pattern where each capability API owns and manages its own PostgreSQL database. No service reads from or writes to another service's database directly. Cross-domain data access occurs exclusively through synchronous API calls or asynchronous events.
+## Transaction and idempotency constraints
 
-This isolation ensures:
+Booking uses a unique `(principal_id, operation, idempotency_key)` index and a canonical JSON request fingerprint. Atomic insertion reserves the key in the **same transaction** as parcel, price snapshot, quote consumption, history and outbox. Concurrent duplicates wait for the winner then return its stored status/body; same key with a changed fingerprint returns `409`. After an unresolved lock/deadline return `409 operation_in_progress` with Retry-After; retry using the same key. A committed response remains reproducible for 30 days; expired keys return `409 key_expired` rather than silently creating another parcel. Quotes are single-use; repeated keys are resolved before checking quote expiry/consumption. Merchant external-order uniqueness is retained for the order's lifetime, independent of API key rotation.
 
-- **Independent deployability** — schema changes in one service do not affect others.
-- **Clear data ownership** — each domain has a single source of truth.
-- **Encapsulated evolution** — services can optimize their storage independently.
+Status updates compare `expectedVersion` in an atomic conditional write. Update parcel, assignment if needed, history and outbox together. No notification or webhook occurs inside that transaction. Consumer inbox/job creation commits before broker ACK. Outbox relay marks published only after broker confirmation and may publish a duplicate after crash. See [state rules](parcel-state-machine.md).
 
----
+## Proof and receipt storage
 
-## 2. Data Ownership Map
+Delivery alone has a private bucket credential. Upload accepts JPEG/PNG by decoded content, at most 5 MiB for each photo/signature (10 MiB combined), with generated object keys; reject executable or malformed data. Stage the upload, confirm object persistence, then authorize and commit proof metadata, `Delivered`, history and outbox with the expected version. A storage failure leaves state unchanged; a transaction failure leaves only an orphan staged object. A daily cleanup removes unreferenced objects older than 24 hours; committed references are protected. Retrying uses the original idempotency key and fingerprint.
 
-```mermaid
-flowchart TB
-    subgraph identityDomain["Identity Domain"]
-        identityApi["Identity API"]
-        identityDb[("Identity Database\nPostgreSQL :5432")]
-        identityApi --> identityDb
-    end
+Download proof/receipt only via authenticated Delivery endpoints after ownership checks, returning streamed bytes with private/no-store headers. No permanent public URLs or proof identifiers appear in anonymous tracking. Receipts are generated from the immutable snapshot for Delivered parcels. Courier proof upload does not grant receipt access.
 
-    subgraph deliveryDomain["Delivery Domain"]
-        deliveryApi["Delivery Operations API"]
-        deliveryDb[("Delivery Database\nPostgreSQL :5433")]
-        proofStore[("Protected Proof Storage\nMinIO / S3 Object Store")]
-        deliveryApi --> deliveryDb
-        deliveryApi --> proofStore
-    end
+## Migrations and retention
 
-    subgraph merchantDomain["Merchant Domain"]
-        merchantApi["Merchant Integration API"]
-        merchantDb[("Merchant Database\nPostgreSQL :5434")]
-        merchantApi --> merchantDb
-    end
+The [Compose reference](../deployment/docker-compose.md) creates all databases and owner roles before API startup. Each future image must run a single explicit migration task before readiness; production-style multi-replica automatic migrations are not promised. Verify notification migrations as well as the three APIs. Retain demonstration parcel/history records until an approved deletion policy exists. Purge expired refresh sessions, notification/provider and webhook attempt records after 30 days; never delete unresolved jobs or idempotency tombstones required for deduplication. Logs contain IDs/codes, not credentials or contact/address payloads. Backups, restore verification and retention acceptance remain implementation tasks.
 
-    subgraph notificationDomain["Notification Domain (.NET Worker)"]
-        workerHost["Notification Consumer"]
-        notifDb[("Notification Database\nPostgreSQL :5435")]
-        workerHost --> notifDb
-    end
+Keep the Delivery eventId→parcel/version provenance index (outbox/history reference) for at least the 30-day consumer replay horizon and for all unresolved notification jobs. NotificationContext must remain able to validate an old but pending event after a broker outage; an outbox cleanup must not make durable jobs unresolvable. Merchant dashboard projections store authoritative Delivery terminal timestamps, never the local polling time.
 
-    deliveryApi -.->|"Outbox Relay\n(Events)"| workerHost
-    identityApi -.->|"JWKS endpoint\n(token verification)"| deliveryApi
-    identityApi -.->|"JWKS endpoint\n(token verification)"| merchantApi
-```
-
-> **Rule:** Data flows between domains through APIs and events — never through shared database access. Four private PostgreSQL databases run on one server with complete schema and user isolation.
-
----
-
-## 3. Database & Storage Inventory
-
-| Database / Store | Owning Component | Port (dev) | Schema Prefix | Purpose & Migration Tool |
-|---|---|:---:|---|---|
-| `swiftdrop_identity` | Identity API | 5432 | `identity` | Users, roles, external identities, refresh sessions, audit logs (EF Core) |
-| `swiftdrop_delivery` | Delivery Operations API | 5433 | `delivery` | Parcels, assignments, price snapshots, history, outbox (EF Core) |
-| `swiftdrop_merchant` | Merchant Integration API | 5434 | `merchant` | Businesses, keys, subscriptions, encrypted secrets, inbox (EF Core) |
-| `swiftdrop_notifications` | Notification Consumer (.NET Worker) | 5435 | `notifications` | Inbound notification events, dispatch jobs, delivery attempts (EF Core) |
-| **Protected Proof Storage** | Delivery Operations API | 9000 | `/proofs` | Encrypted object storage for delivery photos and customer signature curves |
-
----
-
-## 4. Domain Schemas
-
-### 4.1 Identity Database
-
-| Table                   | Description                                                    | Key Columns                                          |
-| ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
-| `users`                 | Registered user accounts                                       | `id`, `email`, `name`, `phone`, `is_active`, `created_at` |
-| `roles`                 | System roles                                                   | `id`, `name` (Customer, Courier, Merchant, Dispatcher, Admin) |
-| `user_roles`            | User-to-role assignments                                       | `user_id`, `role_id`                                 |
-| `external_identities`   | Linked external provider accounts (Google)                     | `id`, `user_id`, `provider`, `provider_subject`      |
-| `refresh_sessions`      | Active refresh tokens for session management                   | `id`, `user_id`, `token_hash`, `expires_at`, `revoked` |
-| `audit_logs`            | Record of authentication and admin actions                     | `id`, `user_id`, `action`, `resource`, `timestamp`   |
-
-### 4.2 Delivery Database
-
-| Table                   | Description                                                    | Key Columns                                          |
-| ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
-| `parcels`               | Registered parcels for delivery                                | `id`, `customer_id`, `status`, `size`, `weight`, `pickup_address`, `dropoff_address` |
-| `assignments`           | Courier-to-parcel assignment records                           | `id`, `parcel_id`, `courier_id`, `assigned_at`, `status` |
-| `price_snapshots`       | Fee calculation snapshots at booking time                       | `id`, `parcel_id`, `zone_id`, `base_fee`, `weight_fee`, `total` |
-| `booking_history`       | State transition history for each parcel                       | `id`, `parcel_id`, `from_status`, `to_status`, `changed_by`, `timestamp` |
-| `idempotency_keys`      | Client-provided keys for idempotent booking                    | `key`, `parcel_id`, `created_at`                     |
-| `outbox_messages`       | Transactional outbox for reliable event publishing              | `id`, `event_type`, `payload`, `created_at`, `published_at` |
-| `proof_metadata`        | Delivery proof records (photo, signature reference)             | `id`, `parcel_id`, `type`, `storage_ref`, `uploaded_at` |
-| `delivery_zones`        | Geographic zone definitions                                    | `id`, `name`, `boundaries`, `is_active`              |
-| `pricing_tiers`         | Zone and size-based pricing rules                              | `id`, `zone_id`, `size_category`, `base_rate`, `per_kg_rate` |
-
-### 4.3 Merchant Database
-
-| Table                   | Description                                                    | Key Columns                                          |
-| ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
-| `businesses`            | Registered merchant businesses                                 | `id`, `user_id`, `business_name`, `status`, `approved_at` |
-| `api_keys`              | Merchant-scoped API keys                                       | `id`, `business_id`, `key_hash`, `prefix`, `scopes`, `is_active`, `created_at` |
-| `webhook_subscriptions` | Registered webhook endpoint URLs and events                    | `id`, `business_id`, `url`, `events`, `secret_hash`, `is_active` |
-| `encrypted_secrets`     | Encrypted merchant secrets for webhook signing                 | `id`, `business_id`, `encrypted_value`, `key_version` |
-| `inbox_jobs`            | Inbound order processing queue                                 | `id`, `business_id`, `order_payload`, `status`, `received_at`, `processed_at` |
-| `delivery_attempts`     | Webhook delivery attempt records with response tracking         | `id`, `subscription_id`, `event_id`, `attempt_number`, `status_code`, `attempted_at` |
-
-### 4.4 Notification Database (.NET Worker Host)
-
-| Table                   | Description                                                    | Key Columns                                          |
-| ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
-| `inbox_messages`        | Deduplicated incoming notification events from RabbitMQ        | `id`, `event_id`, `event_type`, `payload`, `received_at`, `processed_at` |
-| `notification_jobs`     | Asynchronous dispatch jobs for email and mock SMS delivery     | `id`, `recipient`, `channel`, `template_id`, `status`, `created_at` |
-| `delivery_attempts`     | Outbound transmission attempts with provider response logging  | `id`, `job_id`, `attempt_number`, `status`, `error_message`, `attempted_at` |
-| `notification_logs`     | Audit log of delivered customer and courier alerts             | `id`, `job_id`, `recipient`, `channel`, `status`, `sent_at` |
-
-### 4.5 Protected Proof Storage (Object Store)
-
-| Storage Bucket / Prefix | Description                                                    | Access Control & Security                            |
-| ----------------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
-| `/proofs/signatures`    | Captured customer signature curve PNGs                         | Private bucket; 15-minute expiring pre-signed URLs   |
-| `/proofs/photos`        | Package drop-off photographic evidence                         | Private bucket; authorized access through Delivery Ops |
-| `/proofs/receipts`      | Generated digital PDF receipt documents                        | Read-only by parcel creator and system admin        |
-
----
-
-## 5. Data Integrity Patterns
-
-### 5.1 Transactional Outbox
-
-Domain events are written to an `outbox_messages` table within the same database transaction as the business state change. A background relay process reads unpublished messages and forwards them to RabbitMQ, then marks them as published.
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API as Delivery API
-    participant DB as Delivery DB
-    participant Relay as Outbox Relay
-    participant Broker as RabbitMQ
-
-    Client->>API: POST /api/bookings
-    API->>DB: BEGIN TRANSACTION
-    API->>DB: INSERT parcel
-    API->>DB: INSERT outbox_message
-    API->>DB: COMMIT
-    API->>Client: 201 Created
-
-    loop Every few seconds
-        Relay->>DB: SELECT unpublished messages
-        Relay->>Broker: Publish event
-        Relay->>DB: UPDATE message (published_at)
-    end
-```
-
-This pattern guarantees **at-least-once delivery** — the consumer must handle duplicates idempotently.
-
-### 5.2 Idempotent Bookings
-
-Clients provide an `Idempotency-Key` header on booking requests. The API checks the `idempotency_keys` table before processing:
-
-- If the key exists → return the original response without re-processing.
-- If the key is new → process the booking and store the key atomically.
-
-### 5.3 Soft Deletes
-
-User accounts, merchant businesses, and API keys use soft deletes (`is_active = false`) to preserve referential integrity and audit history.
-
----
-
-## 6. Migration Strategy
-
-| Concern               | Approach                                                          |
-| ---------------------- | ----------------------------------------------------------------- |
-| Migration tool         | Entity Framework Core Migrations (code-first)                    |
-| Migration execution    | Applied automatically on service startup in development          |
-| Version tracking       | EF Core `__EFMigrationsHistory` table per database               |
-| Backward compatibility | Additive migrations preferred; breaking changes require coordination |
-| Seed data              | Admin user, default roles, and sample zones seeded on first run  |
-
----
-
-## 7. Data Access Patterns
-
-| Pattern              | Usage                                                              |
-| -------------------- | ------------------------------------------------------------------ |
-| Repository pattern   | Encapsulates data access behind domain-oriented interfaces         |
-| Unit of Work         | EF Core `DbContext` scoped per request, committed at handler level |
-| Read projections     | Optimized queries for dashboards and reporting (CQRS-lite)         |
-| Pagination           | Cursor-based or offset pagination on list endpoints                |
-| Connection pooling   | Npgsql connection pooling with configurable pool sizes             |
-
----
-
-## References
-
-- [Architecture Diagram](../design/diagrams/architecture/architecture.md)
-- [Technical Design](technical-design.md)
-- [Service Catalog](service-catalog.md)
-- [ER Diagrams](../design/diagrams/er/README.md)
-- [Integration Design](../integration/integration-design.md)
+See [ER source](../design/diagrams/er/README.md) and [security](../security/data-protection.md).
