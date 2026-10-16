@@ -1,165 +1,34 @@
 # Scope and Assumptions
 
-> **Status:** Draft  
-> **Last Updated:** October 2026
+> Status: Proposed baseline 2.0 · 16 October 2026 · Team approval pending
 
----
+## Required product scope
 
-## 1. System Boundary
+React web covers Customer, Merchant, Courier, Dispatcher and Admin, including a public tracking page usable at 320px width. Flutter supplies both **Customer and Courier** experiences; it is part of the agreed deliverable, not a courier-only extension.
 
-The following diagram illustrates the SwiftDrop system boundary, showing which actors and systems are inside scope and which are external dependencies.
+Customer scope includes local registration/login, Google login, profile, quote before confirmation, booking, safe public/private tracking, history and receipt download. Merchant scope includes approval, scoped API keys, durable single-order ingestion, own-order dashboard and signed status webhooks. Courier scope includes assignment view, guarded status changes, failed delivery and private proof. Operations includes assignment/workload, user/role management, merchant approval, zones/pricing and basic admin reports. Notifications include persisted in-app delivery updates and demonstrable mock email/SMS.
 
-```mermaid
-flowchart LR
-    subgraph external["External Systems"]
-        google["Google OIDC Provider"]
-        merchantSys["Merchant E-Commerce Platforms"]
-        email["Email / SMS Providers"]
-    end
+## Team design scope
 
-    subgraph boundary["SwiftDrop System Boundary"]
-        direction TB
-        gateway["API Gateway — YARP"]
-        identity["Identity API"]
-        delivery["Delivery Operations API"]
-        merchant["Merchant Integration API"]
-        worker["Background Worker"]
-        broker["RabbitMQ"]
-        web["React SPA"]
-        mobile["Flutter Mobile App"]
-        db1[("Identity DB")]
-        db2[("Delivery DB")]
-        db3[("Merchant DB")]
-    end
+Three capability APIs plus YARP and one Notification/Webhook Worker; four separately owned logical PostgreSQL databases on one instance; RabbitMQ/MassTransit; private object storage; REST, Delivery-hosted GraphQL and internal gRPC. SSE status streams live in Delivery, with one Delivery replica for the demo. See [service catalog](../architecture/service-catalog.md) and [decisions](../architecture/decisions/README.md). These are Proposed choices, not lecturer mandates or proof of implementation.
 
-    google -.->|OIDC tokens| identity
-    merchantSys -.->|Order API calls| gateway
-    worker -.->|Notifications| email
+## Deferred and excluded scope
 
-    web --> gateway
-    mobile --> gateway
-    gateway --> identity
-    gateway --> delivery
-    gateway --> merchant
-    delivery --> broker
-    broker --> worker
-    identity --> db1
-    delivery --> db2
-    merchant --> db3
-```
+Bulk ingestion is explicitly deferred; the baseline has one durable asynchronous order endpoint. GPS telemetry, dispatcher live maps and SignalR are additional unapproved scope. Redis is not required by the proposed demo. Kubernetes and AI are independent bonuses. Payments, route optimization, internationalization, production hosting guarantees and third-party logistics are excluded. Capacity testing for the stated SRS targets remains in scope; meeting a target needs evidence.
 
----
+## Assumptions to verify
 
-## 2. In Scope
+| ID | Assumption and verification |
+|---|---|
+| A-01 | Team has source repositories and toolchains; OPS must pin tested versions and supply commit links |
+| A-02 | Separate web/Android Google clients and consent configuration exist; UI/SEC verify with both personas |
+| A-03 | Local infrastructure can run with Compose; clean-start smoke evidence pending |
+| A-04 | Single region and one Delivery replica are adequate for the academic demonstration |
+| A-05 | Merchants control public HTTPS receivers and can verify timestamped HMAC |
+| A-06 | Admin seeds deterministic zones/pricing for demos; no live payment processing |
+| A-07 | Flutter and React use the same authorization and application command handlers |
+| A-08 | Internal networks still require service credentials; network location alone grants no trust |
+| A-09 | Email/SMS may use a clearly labeled local stub; durable notification records still required |
+| A-10 | All 52 SRS requirements require test coverage; no runtime results are available in this docs repository |
 
-The following capabilities are within the scope of the SwiftDrop project:
-
-### 2.1 Core Business Functions
-
-| Area                    | Capabilities                                                                                    |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| Customer management     | Registration, Google login, profile management                                                  |
-| Parcel booking          | Create bookings, fee estimation, parcel size/weight input, pickup and drop-off details           |
-| Delivery operations     | Courier assignment, status tracking, proof of delivery, failed delivery handling                 |
-| Merchant integration    | Merchant onboarding, approval workflow, API key management, order ingestion, webhook delivery    |
-| Dispatch management     | Courier assignment, workload monitoring, zone-based coordination                                |
-| Administration          | User management, merchant approvals, pricing configuration, delivery zone management, reporting |
-| Shipment tracking       | Real-time parcel status via SSE/WebSocket, delivery history, receipt generation                  |
-| Notifications           | Webhook notifications to merchants, in-app status updates                                       |
-
-### 2.2 Technical Functions
-
-| Area                           | Capabilities                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------------- |
-| API gateway                    | Reverse proxy routing, TLS termination, request forwarding via YARP                   |
-| Authentication                 | Google OIDC login, application JWT issuance, JWKS endpoint, refresh token rotation    |
-| Authorization                  | Role-based access control (Customer, Courier, Merchant, Dispatcher, Admin)            |
-| Synchronous integration        | REST APIs (external), GraphQL (frontend aggregation), gRPC (internal service calls)   |
-| Asynchronous integration       | RabbitMQ pub/sub, transactional outbox, background worker processing                  |
-| Real-time communication        | Server-Sent Events or WebSocket for live tracking                                     |
-| Data persistence               | PostgreSQL with database-per-service isolation                                        |
-| Containerization               | Docker images and Docker Compose orchestration                                        |
-
-### 2.3 Documentation
-
-| Deliverable                     | Description                                                       |
-| ------------------------------- | ----------------------------------------------------------------- |
-| SRS                             | Functional and non-functional requirements                        |
-| Architecture documentation      | Technical design, system context, service catalog, ADRs           |
-| Design diagrams                 | ER, sequence, activity, use case, and architecture diagrams       |
-| Integration documentation       | Communication patterns, event catalog, webhook specification      |
-| API documentation               | REST, GraphQL, gRPC, and WebSocket specifications                 |
-| Security documentation          | Authentication, authorization, and data protection design         |
-| Testing documentation           | Strategy, test cases, results, and coverage                       |
-| Deployment documentation        | Local setup, Docker Compose, CI/CD                                |
-
----
-
-## 3. Out of Scope
-
-The following items are explicitly excluded from the current project scope:
-
-| Item                                        | Rationale                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------- |
-| Payment processing and billing              | No payment gateway integration required for the assignment       |
-| Turn-by-turn vehicle navigation & hardware telematics | Real-time coordinate updates and status feeds are supported; native GPS turn-by-turn navigation is excluded |
-| Multi-tenancy with tenant isolation          | Single-tenant deployment for the academic scope                  |
-| Internationalization (i18n) and localization | English-only interface                                           |
-| Production-grade infrastructure              | Academic demonstration environment only                          |
-| Load testing and performance benchmarking    | Functional correctness is prioritized over performance tuning    |
-| Native desktop application                  | Web and mobile clients only                                      |
-| Third-party logistics (3PL) integration     | Only direct merchant integration is supported                    |
-| Automated route optimization                | Manual courier assignment by dispatchers                         |
-
----
-
-## 4. Assumptions
-
-| ID    | Assumption                                                                                                     |
-| ----- | -------------------------------------------------------------------------------------------------------------- |
-| A-01  | All team members have access to the SwiftDrop GitHub organization and required development tools.               |
-| A-02  | Google Cloud project credentials for OIDC integration are available in a shared development environment.        |
-| A-03  | PostgreSQL, RabbitMQ, and all infrastructure dependencies are run locally via Docker Compose.                   |
-| A-04  | The system operates in a single geographic region with no multi-region deployment requirements.                 |
-| A-05  | Merchant systems can consume webhooks over HTTPS and validate HMAC signatures.                                  |
-| A-06  | Parcel delivery zones and pricing tiers are pre-configured by administrators, not dynamically calculated.       |
-| A-07  | The mobile application (Flutter) shares the same backend APIs as the React web application.                     |
-| A-08  | All inter-service communication occurs within a trusted internal network (Docker bridge or Kubernetes cluster). |
-| A-09  | Email and SMS notification delivery is mocked or stubbed for the academic demonstration.                        |
-| A-10  | The system handles moderate concurrent load suitable for demonstration, not production-scale traffic.           |
-
----
-
-## 5. Dependencies
-
-| Dependency                  | Type       | Description                                                  |
-| --------------------------- | ---------- | ------------------------------------------------------------ |
-| Google Cloud OIDC           | External   | Identity provider for user authentication                    |
-| Docker and Docker Compose   | Tooling    | Local development and deployment orchestration               |
-| PostgreSQL 16+              | Runtime    | Primary data store for all services                          |
-| RabbitMQ 3.13+              | Runtime    | Message broker for asynchronous communication                |
-| .NET 8 SDK                  | Tooling    | Backend service development and build                        |
-| Node.js 20+ LTS             | Tooling    | React frontend development and build                         |
-| Flutter SDK 3.x             | Tooling    | Mobile application development and build                     |
-| GitHub Actions              | CI/CD      | Automated build, test, and deployment pipelines              |
-
----
-
-## 6. Constraints
-
-| Constraint                              | Impact                                                                       |
-| --------------------------------------- | ---------------------------------------------------------------------------- |
-| Academic deadline (November 15, 2026)   | Limits scope to features demonstrable within the timeline                    |
-| 10-member team with varying expertise   | Requires clear module ownership and coordination                             |
-| Required technology stack               | ASP.NET Core, PostgreSQL, and RabbitMQ are mandated                          |
-| No production hosting budget            | All demonstrations run on local or free-tier infrastructure                  |
-| Single documentation repository         | All project-level docs must reside in `swiftdrop-docs`                       |
-
----
-
-## References
-
-- [Assignment Overview](assignment-overview.md)
-- [Software Requirements Specification](srs.md)
-- [Technical Design](../architecture/technical-design.md)
-- [Architecture Diagram](../design/diagrams/architecture/architecture.md)
+External submission: **15 November 2026**. Proposed internal rehearsal/freeze: **12 November 2026**. The assignment PDF, individual allocations and ADR approvers must be supplied by the team.

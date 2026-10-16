@@ -1,137 +1,35 @@
 # Assignment Overview
 
-> **Status:** Approved  
-> **Module:** Enterprise Application Development  
-> **Group:** 09 — SwiftDrop  
-> **Submission Deadline:** November 15, 2026
+> Status: Draft reconciliation · Baseline 2.0 · 16 October 2026
 
----
+SwiftDrop is Group 09's Parcel Delivery and Courier Management project for Enterprise Application Development. Submission is **15 November 2026**. The assignment is worth **20 marks overall**; assessment weights are design 20%, implementation 50%, testing 15%, and presentation 15%. These percentages are category weights, not four separate allocations of 20/50/15/15 marks.
 
-## 1. Assignment Brief
+## Official assignment constraints
 
-The Enterprise Application Development group assignment requires the design, implementation, testing, and demonstration of a full-stack enterprise application that applies modern software architecture principles, distributed system patterns, and professional engineering practices.
+The following is a meaning-preserving reconciliation supplied by the [review plan](../documentation-fix-plan.md). **The lecturer's `EAD Group Assignment.pdf` is not present in this repository and has not been independently compared in this change.** REQ must attach its approved location and verify this table before sign-off; page citations and exact bonus scoring remain unverified.
 
-Each group selects a problem domain and delivers a working system supported by comprehensive design documentation, automated testing, and a live demonstration.
+| Area | Assignment requirement described by the supplied review |
+|---|---|
+| Application | Suitable backend framework; layered, microservice, or modular-monolith architecture permitted |
+| APIs | Secure REST **or** GraphQL APIs; message-broker integration |
+| Identity | Secure signup/login and OAuth 2.0 / Google OIDC login with role-based access |
+| Customer | Book delivery, preview fee before confirmation, live status/history, download receipt, mobile-friendly public tracking page |
+| Merchant | Registration/approval, secured order API, webhooks, own-order status dashboard |
+| Courier | Assigned deliveries, status changes, proof of delivery, failed-delivery reporting |
+| Operations | Courier assignment/workload, user/role and merchant administration, zones/pricing, basic reports including deliveries/day and success/failure |
+| Design | SRS, architecture, ER, use cases, sequence and activity diagrams; four explicit workflows: customer booking, merchant API order, courier status triggering notifications, Google login |
+| Submission | Implementation/setup, tests and coverage evidence, design PDF, live demo and individual contribution evidence |
 
-**SwiftDrop** addresses the **Parcel Delivery and Courier Management** domain.
+## Team technical choices
 
----
+ASP.NET Core/C#, PostgreSQL, three capability APIs, YARP, RabbitMQ/MassTransit, REST **plus** GraphQL and gRPC, database isolation, transactional outbox, private object storage and Docker Compose are SwiftDrop design choices. They must not be attributed to the lecturer. React web and Flutter **Customer and Courier** experiences are the agreed client scope described in the review. Individual runtime versions need to be pinned and tested by implementers; none is proven deployed here.
 
-## 2. Assessment Criteria
+The [decision register](../architecture/decisions/README.md) records a consistent Proposed baseline with alternatives and consequences. Proposed decisions do not imply team approval.
 
-| Component                        | Weight | Description                                                                                       |
-| -------------------------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| **Design Documentation**         | 20%    | Architecture diagrams, SRS, ER diagrams, sequence/activity diagrams, ADRs, integration design     |
-| **Implementation**               | 50%    | Working backend services, frontend, API gateway, database, messaging, authentication, integration  |
-| **Testing**                      | 15%    | Unit tests, integration tests, end-to-end tests, coverage reports, test evidence                   |
-| **Presentation & Demonstration** | 15%    | Live demo of key workflows, architectural walkthrough, Q&A                                         |
+## Bonus targets
 
-### Bonus Targets
+Kubernetes and an AI delivery assistant are independent optional bonuses. Exact additional marks must be checked against the PDF; neither is required to demonstrate the mandatory delivery system. See [Kubernetes](../deployment/kubernetes.md) and [AI scope](../bonus/ai-delivery-assistant.md).
 
-| Bonus Feature              | Additional Marks | Description                                                        |
-| -------------------------- | ---------------- | ------------------------------------------------------------------ |
-| **Kubernetes Deployment**  | Up to 5          | Container orchestration, scaling, health checks, Ingress routing   |
-| **AI Delivery Assistant**  | Up to 5          | LLM-based assistant with tool integration for delivery operations  |
+## Acceptance and evidence
 
----
-
-## 3. Required Deliverables
-
-### 3.1 Design Documentation
-
-- Software Requirements Specification (SRS)
-- System architecture diagrams (high-level and component-level)
-- Entity Relationship (ER) diagrams for all data stores
-- Sequence diagrams for critical workflows
-- Activity diagrams for key business processes
-- Use case diagrams for all system actors
-- Architecture Decision Records (ADRs)
-- Integration design documentation
-- Security design (authentication, authorization, data protection)
-
-### 3.2 Implementation
-
-- Microservices-based backend with independently deployable services
-- API gateway with reverse proxy routing
-- RESTful APIs with appropriate HTTP semantics
-- GraphQL API for frontend aggregation
-- gRPC for internal service-to-service communication
-- Asynchronous messaging with a message broker
-- Transactional outbox pattern for reliable event publishing
-- Real-time communication (WebSockets or SSE)
-- External identity provider integration (OAuth 2.0 / OpenID Connect)
-- JWT-based authentication with role-based access control
-- Database-per-service data isolation
-- Webhook integration for external partner notifications
-- Containerized deployment with Docker Compose
-
-### 3.3 Testing
-
-- Unit tests for business logic and domain rules
-- Integration tests for API endpoints and data access
-- Security tests for authentication and authorization
-- End-to-end tests for critical user workflows
-- Measurable code coverage reports
-- Documented test results and evidence
-
-### 3.4 Presentation and Demonstration
-
-- Architectural overview presentation
-- Live demonstration of end-to-end workflows
-- Demonstration of enterprise integration patterns
-- Individual contribution evidence
-- Q&A readiness
-
----
-
-## 4. Technical Constraints
-
-| Constraint                     | Requirement                                                    |
-| ------------------------------ | -------------------------------------------------------------- |
-| Backend framework              | ASP.NET Core with C#                                           |
-| Database                       | PostgreSQL                                                     |
-| Frontend                       | React (web) and/or Flutter (mobile)                            |
-| API protocols                  | REST, GraphQL, gRPC required                                   |
-| Messaging                      | RabbitMQ or equivalent message broker                          |
-| Authentication                 | OAuth 2.0 / OpenID Connect with an external provider           |
-| Containerization               | Docker and Docker Compose required                             |
-| Version control                | Git with GitHub organization                                   |
-| Documentation format           | Markdown with diagrams (Mermaid, PlantUML, or diagrams.net)    |
-
----
-
-## 5. Team Composition
-
-| Property      | Details                            |
-| ------------- | ---------------------------------- |
-| Group         | Group 09                           |
-| Team Size     | 10 Members                         |
-| Project Name  | SwiftDrop                          |
-| Organization  | [SwiftDrop-Group09](https://github.com/SwiftDrop-Group09) |
-
-Individual responsibilities and module ownership are documented in [Team Responsibilities](../project-management/team-responsibilities.md).
-
----
-
-## 6. Key Dates
-
-| Milestone                       | Target Date         |
-| ------------------------------- | ------------------- |
-| Project kickoff and scaffolding | Week 1              |
-| Requirements and architecture   | Week 2–3            |
-| Core implementation sprint      | Week 4–7            |
-| Integration and testing sprint  | Week 8–9            |
-| Documentation finalization      | Week 10             |
-| Presentation rehearsal          | Week 11             |
-| **Final Submission**            | **November 15, 2026** |
-
-See [Milestones](../project-management/milestones.md) for detailed phase planning.
-
----
-
-## References
-
-- [Software Requirements Specification](srs.md)
-- [Scope and Assumptions](scope-and-assumptions.md)
-- [Technical Design](../architecture/technical-design.md)
-- [Submission Checklist](../submission/submission-checklist.md)
+The [SRS](srs.md) has 32 FRs and 20 NFRs. The [traceability matrix](requirements-traceability.md) maps all 52 to interfaces, clients, suggested owner roles and drafted test cases. Actual individual owners, assignment verification, design approval and runtime evidence remain pending. The optional internal freeze is **12 November 2026**; it does not replace the external deadline.

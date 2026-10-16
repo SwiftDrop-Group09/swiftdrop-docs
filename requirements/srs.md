@@ -1,8 +1,8 @@
 # Software Requirements Specification
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026
+> **Status:** Draft
+> **Version:** 2.0 (Proposed baseline)
+> **Last Updated:** 16 October 2026
 
 ---
 
@@ -86,13 +86,13 @@ flowchart LR
 | ID      | Requirement                  | Description                                                                                                    | Priority  |
 | ------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------- | --------- |
 | FR-C01  | Customer registration        | A new user can register with email and password. The system creates an account with the `Customer` role.        | Must      |
-| FR-C02  | Google OIDC login            | A user can authenticate using their Google account via OpenID Connect. First-time login creates a linked account. | Must      |
+| FR-C02  | Google OIDC login            | A user can authenticate using their Google account via OpenID Connect. First-time login creates a Customer only when no provider subject or local-email collision exists; linking requires reauthentication. | Must      |
 | FR-C03  | Profile management           | An authenticated customer can view and update their profile details (name, phone, address).                     | Must      |
 | FR-C04  | Create parcel booking        | A customer can create a delivery booking by providing parcel details, pickup address, and drop-off address.     | Must      |
 | FR-C05  | Fee estimation               | Before confirming a booking, the customer can preview the estimated delivery fee based on zone and parcel size. | Must      |
 | FR-C06  | Real-time parcel tracking    | A customer can track the current status of their parcel with live updates delivered via SSE.                    | Must      |
 | FR-C07  | Delivery history             | A customer can view a paginated list of their past and current bookings with status information.                | Must      |
-| FR-C08  | Download receipt             | A customer can download a PDF or digital receipt for a completed delivery.                                     | Should    |
+| FR-C08  | Download receipt             | A customer can download a PDF or digital receipt for a completed delivery.                                     | Must    |
 
 ### 3.2 Merchant Requirements
 
@@ -100,10 +100,10 @@ flowchart LR
 | ------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------- |
 | FR-M01  | Merchant registration        | A business representative can register as a merchant, providing business name, contact, and integration details.  | Must      |
 | FR-M02  | Admin approval workflow      | A registered merchant account remains `Pending` until an admin reviews and approves or rejects the application.   | Must      |
-| FR-M03  | API key management           | An approved merchant can generate, view, and revoke scoped API keys for system integration.                       | Must      |
+| FR-M03  | API key management           | An approved merchant can generate and revoke scoped API keys and view metadata; raw keys appear only once at creation. | Must |
 | FR-M04  | Submit order via API         | A merchant can submit delivery orders programmatically through a REST API authenticated with API keys.            | Must      |
 | FR-M05  | Webhook subscription         | A merchant can register webhook URLs to receive delivery status change notifications (picked up, delivered, failed). | Must      |
-| FR-M06  | Merchant dashboard           | A merchant can view order statistics, delivery success rates, and pending deliveries through a dashboard.          | Should    |
+| FR-M06  | Merchant dashboard           | A merchant can view order statistics, delivery success rates, and pending deliveries through a dashboard.          | Must    |
 | FR-M07  | Order status tracking        | A merchant can query the current status of any order they submitted.                                               | Must      |
 
 ### 3.3 Courier Requirements
@@ -134,8 +134,8 @@ flowchart LR
 | FR-A02  | Role assignment              | An admin can assign or revoke roles (Customer, Courier, Merchant, Dispatcher, Admin) for any user.                | Must      |
 | FR-A03  | Merchant approval/rejection  | An admin can review pending merchant registrations and approve or reject them with a reason.                      | Must      |
 | FR-A04  | Configure delivery zones     | An admin can create and manage delivery zones that determine courier assignment regions.                          | Must      |
-| FR-A05  | Configure pricing tiers      | An admin can define and update pricing tiers based on parcel size, weight, distance, and zone.                    | Must      |
-| FR-A06  | View system reports          | An admin can view delivery volume reports, revenue summaries, and operational metrics.                            | Should    |
+| FR-A05  | Configure pricing tiers      | An admin can define and update versioned pricing by parcel size, weight and zone (zones represent distance bands). | Must |
+| FR-A06  | View system reports          | An admin can view delivery volume reports, revenue summaries, and operational metrics.                            | Must    |
 | FR-A07  | View audit logs              | An admin can view audit logs recording user actions, authentication events, and configuration changes.            | Should    |
 
 ---
@@ -167,7 +167,7 @@ flowchart LR
 | ------- | ----------------------------------------------------------------------------------------------------- |
 | NFR-10  | Booking operations must be idempotent using client-generated idempotency keys.                         |
 | NFR-11  | Events must be published reliably using a transactional outbox pattern, preventing message loss.       |
-| NFR-12  | Webhook delivery must retry failed attempts with exponential backoff (up to 5 retries).               |
+| NFR-12  | Webhook delivery must retry failed attempts with exponential backoff (one initial attempt plus five retries, per the webhook policy).               |
 | NFR-13  | Failed webhook attempts must be logged and available for manual inspection and replay.                 |
 
 ### 4.4 Scalability and Maintainability
@@ -183,7 +183,7 @@ flowchart LR
 
 | ID      | Requirement                                                                                           |
 | ------- | ----------------------------------------------------------------------------------------------------- |
-| NFR-18  | The web application must be responsive across desktop and tablet viewports.                            |
+| NFR-18  | The web application must be responsive across mobile (320px+), tablet and desktop viewports, including the public tracking page.                            |
 | NFR-19  | Error responses must return meaningful messages with appropriate HTTP status codes.                    |
 | NFR-20  | The mobile application must support Android devices (API level 26+).                                  |
 
@@ -195,7 +195,7 @@ flowchart LR
 
 | Interface                    | Protocol    | Direction  | Description                                                  |
 | ---------------------------- | ----------- | ---------- | ------------------------------------------------------------ |
-| Google OIDC Provider         | HTTPS/OIDC  | Outbound   | User identity verification and token exchange                |
+| Google OIDC Provider         | HTTPS/OIDC  | Client SDK + validation | Client obtains ID token; Identity validates provider signature/claims |
 | Merchant Order API           | REST/HTTPS  | Inbound    | Merchant systems submit delivery orders                      |
 | Merchant Webhook Endpoint    | HTTPS       | Outbound   | Delivery status notifications pushed to merchant URLs        |
 
@@ -204,7 +204,7 @@ flowchart LR
 | Interface                           | Protocol     | Description                                                     |
 | ----------------------------------- | ------------ | --------------------------------------------------------------- |
 | React SPA ↔ API Gateway             | HTTPS + SSE  | Frontend requests and real-time tracking updates                |
-| Flutter App ↔ API Gateway           | HTTPS + SSE  | Mobile requests and real-time tracking updates                  |
+| Flutter Customer + Courier App ↔ API Gateway           | HTTPS + SSE  | Mobile requests and real-time tracking updates                  |
 | API Gateway ↔ Capability APIs       | HTTP (internal) | YARP reverse proxy routing to backend services               |
 | Delivery Operations ↔ Merchant API  | gRPC / REST  | Internal service-to-service calls with service JWT              |
 | Services ↔ RabbitMQ                 | AMQP         | Asynchronous event publishing and consumption                  |
@@ -216,7 +216,7 @@ flowchart LR
 flowchart TB
     subgraph clients["Client Layer"]
         react["React SPA"]
-        flutter["Flutter App"]
+        flutter["Flutter Customer + Courier App"]
         merchantSys["Merchant Systems"]
     end
 
@@ -236,6 +236,8 @@ flowchart TB
         idDb[("Identity DB")]
         delDb[("Delivery DB")]
         merDb[("Merchant DB")]
+        notifDb[("Notification DB")]
+        storage[("Private proof storage")]
     end
 
     subgraph external["External"]
@@ -255,10 +257,13 @@ flowchart TB
     delivery --> delDb
     merchant --> merDb
 
-    delivery -->|Service JWT| merchant
+    merchant -->|CreateBooking gRPC| delivery
+    worker -->|DispatchWebhook internal API| merchant
+    worker --> notifDb
+    delivery --> storage
     delivery -->|Outbox relay| broker
     broker --> worker
-    worker -->|Webhook POST| webhookTarget
+    merchant -->|Signed webhook POST| webhookTarget
 
     google -.->|OIDC| identity
 ```
@@ -273,7 +278,8 @@ flowchart TB
 | ------------------- | --------------------------- | ------------------------------------------------------------------- |
 | Identity            | Identity API                | Users, Roles, External Identities, Refresh Sessions, Audit Logs     |
 | Delivery            | Delivery Operations API     | Parcels, Assignments, Price Snapshots, History, Outbox, Proof Data  |
-| Merchant            | Merchant Integration API    | Businesses, API Keys, Webhooks, Secrets, Inbox Jobs, Attempts       |
+| Merchant | Merchant Integration API | Businesses, API Keys, Webhooks, Encrypted Secrets, Inbox Jobs, Webhook Attempts |
+| Notifications | Notification/Webhook Worker | Consumer Inbox, Notification Jobs, Provider Attempts, Webhook Dispatch Jobs |
 
 ### 6.2 Data Retention
 
@@ -297,7 +303,7 @@ The system is considered complete when:
 4. Webhook delivery with retry and failure logging operates correctly.
 5. Real-time tracking updates are delivered to subscribed clients.
 6. The system can be started with a single `docker compose up` command.
-7. Test coverage meets the defined thresholds (≥ 80% unit, ≥ 60% integration).
+7. Test coverage meets the defined thresholds (≥ 80% business-logic unit line coverage; integration scenarios must pass with evidence, with no undefined integration percentage).
 8. All five actor workflows are demonstrable end-to-end.
 
 ---
@@ -309,3 +315,21 @@ The system is considered complete when:
 - [Requirements Traceability](requirements-traceability.md)
 - [Architecture Diagram](../design/diagrams/architecture/architecture.md)
 - [Technical Design](../architecture/technical-design.md)
+
+
+## Baseline 2.0 clarifications
+
+Status is Draft; no approval or implementation evidence is asserted. These requirements include team-selected quality targets beyond the assignment; see [official versus team scope](assignment-overview.md).
+
+- FR-C04/C05: a quote is not a parcel. Customer confirms an unexpired quote before `Created`; persist its immutable price snapshot. See [parcel state machine](../architecture/parcel-state-machine.md).
+- FR-C06/NFR-18: anonymous mobile-friendly tracking exposes only `PublicTrackingSummary`; authenticated owner tracking uses REST and SSE. Public tracking excludes contacts, street addresses, courier identity, precise coordinates and proof files.
+- FR-C08 **Must**: owner downloads a receipt for a Delivered parcel; server authorizes every PDF download.
+- FR-M06 **Must**: merchant dashboard lists only its own jobs, parcels, status counts, pending orders and success/failure rates.
+- FR-A06 **Must**: Admin reports deliveries/day and success/failure counts and rates for an explicit date range, including zero-denominator behavior.
+- Flutter Customer supports signup/login, quote/confirm, tracking, history and receipt. Flutter Courier supports authentication, assigned manifest, guarded status/failure and proof upload. React covers all five roles and public tracking.
+- NFR-08: domain services enforce role **and** resource ownership; a matching recipient phone is never proof of ownership. JWT role changes take effect within the documented 15-minute access-token bound; merchant-key revocation is immediate at Merchant API.
+- NFR-12: webhook retry means six maximum automatic HTTP attempts. Broker retry is a separate policy.
+- NFR-17: the unit coverage denominator and separate branch reporting are defined in [coverage summary](../testing/coverage-summary.md); targets are not results.
+- SSE is the required status transport. GPS/SignalR, Kubernetes and AI are deferred optional scope. Four private logical databases share one proposed PostgreSQL instance and port; no Redis dependency is proposed.
+
+See [use-case narratives](use-case-specifications.md), [REST contracts](../api/rest-api.md), [traceability](requirements-traceability.md) and [test catalog](../testing/test-cases.md) for measurable acceptance criteria and failure paths.
