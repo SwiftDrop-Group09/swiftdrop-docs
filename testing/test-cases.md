@@ -1,67 +1,78 @@
-# Test Cases & Acceptance Criteria Specification
+# Test Cases and Acceptance Criteria
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026  
+> Status: Drafted cases only · 52 primary + 16 security/recovery = 68 cases · No runtime execution claimed
 
----
+[Machine-readable catalog](test-cases.json) is the design source. Fixtures use synthetic users, addresses and keys. Each row gives preconditions, repeatable steps/fault injection and measurable expected results. Implement tests in owning source repositories; attach source commit, command, CI URL and artifacts before advancing status. [Traceability](../requirements/requirements-traceability.md) uses the same IDs.
 
-## 1. Overview
+| ID | SRS requirement(s) | Preconditions | Steps | Expected result | Status |
+|---|---|---|---|---|---|
+| TC-C01 | FR-C01 | No user exists; local auth fixture | Register valid Customer; login; refresh twice with old token; logout own family | 201 Customer, valid login; refresh rotates; reuse revokes family; logout 204 and no refresh; access expiry bound documented | Drafted |
+| TC-C02 | FR-C02 | Configured test Google issuer/JWKS and platform clients | Exchange valid/expired/wrong-audience tokens and local-email collision; repeat known subject | Same active subject maps same user; bad token 401; collision 409 until verified link; no role escalation | Drafted |
+| TC-C03 | FR-C03 | Two Customer accounts | Read/update own name/phone/address; try roles and another user ID | Own fields persist; role/identity override rejected; foreign profile not exposed | Drafted |
+| TC-C04 | FR-C04 | Customer has valid own quote | Confirm total with idempotency key, then repeat and alter payload | One Created parcel, immutable price, history/outbox; duplicate original response; changed body 409 | Drafted |
+| TC-C05 | FR-C05 | Seed base 450/perKg 60, weight 2.5 | Estimate; decline; confirm after 10-minute expiry; quote again | LKR 540.00; decline creates no parcel/event; expired quote 409; new fee must be reconfirmed | Drafted |
+| TC-C06 | FR-C06 | Owner, stranger, anonymous and current assigned courier fixtures | Track anonymously; open authorized SSE; mutate status; reconnect; query private fields anonymously | Safe public fields only; owner gets newest version within target; 401/404 private denial and no leaks | Drafted |
+| TC-C07 | FR-C07 | Owned and foreign parcels, more than one page | List own history using page/pageSize and status filter | Stable sorted pages contain only own records; no duplicate/missing page boundary at fixed dataset | Drafted |
+| TC-C08 | FR-C08 | Owned Delivered parcel plus foreign/unfinished parcel | Download receipt in React and Flutter; repeat foreign/unfinished requests | Valid PDF/snapshot total for owner; foreign 404; unfinished 409; private/no-store and no raw URL | Drafted |
+| TC-M01 | FR-M01 | Signed-in applicant | Register business, attempt client-supplied Approved | Pending business only; self-approval denied; own applicant can read status | Drafted |
+| TC-M02 | FR-M02 | Pending business and non-Admin fixture | Non-Admin attempts approval then Admin approves/rejects | 403 without mutation for non-Admin; audited allowed status and reason for Admin; keys blocked until Approved | Drafted |
+| TC-M03 | FR-M03 | Approved Merchant and key-management UI | Generate scoped key, list metadata, revoke, then use revoked key | Raw key visible once, salted hash stored; metadata no secret/hash; next request rejected after revoke | Drafted |
+| TC-M04 | FR-M04 | Approved merchant key, accepted tariff version | Submit order; duplicate concurrently; poll durable job through timeout recovery | 202 durable job; no premature tracking ID; eventual Created or explicit Failed/Retrying; one logical parcel | Drafted |
+| TC-M05 | FR-M05 | Approved business and controlled public HTTPS receiver | Register webhook; emit delivery status; verify HMAC and inspect own attempts | One intended job/event/subscription; exact timestamp.raw-byte HMAC; attempts scoped and logged with safe fields | Drafted |
+| TC-M06 | FR-M06 | Two businesses with mixed jobs and terminal parcel outcomes | Open own dashboard with explicit date range; force status reconciliation | Own order/status/pending counts and rates match fixtures; lastRefreshedAt indicates freshness; other business absent | Drafted |
+| TC-M07 | FR-M07 | Own/foreign Accepted, Retrying, Created, Failed jobs | Poll each state by owner key/JWT then foreign key | States/parcel references truthful; foreign 404; successful parcel recovered after lost response | Drafted |
+| TC-R01 | FR-R01 | Two couriers and assignments | Load each Courier manifest in Flutter; request another parcel | Current own assignment details only; foreign 404 | Drafted |
+| TC-R02 | FR-R02 | Assigned Courier with current version | Progress PickedUp → InTransit → OutForDelivery; repeat/stale/direct Delivered attempts | Legal writes commit history/outbox once; invalid repeat, stale version and direct Delivered get 409 | Drafted |
+| TC-R03 | FR-R03 | OutForDelivery assigned parcel, valid photo/signature | Complete proof; deny foreign courier, malformed/oversized upload; simulate storage/DB failure | Delivered only after stored valid proof and DB commit; failures keep prior state; unreferenced upload cleaned | Drafted |
+| TC-R04 | FR-R04 | Currently assigned active parcel | Fail with/without required reason, then attempt retry transition | Missing code 400; valid Failed terminal with history/outbox; undocumented redelivery rejected | Drafted |
+| TC-R05 | FR-R05 | Courier has completed/failed/foreign records | Page CourierHistory | Only assignments historically belonging to caller; canonical status and stable pages | Drafted |
+| TC-D01 | FR-D01 | Created and already Assigned parcels | Dispatcher queries ListParcels status=Created | Only unassigned queue; Customer cannot see global queue | Drafted |
+| TC-D02 | FR-D02 | Available courier plus full courier | Assign available courier, then race capacity assignments on full courier | One valid versioned assignment; 422 capacity rejection or 409 race; capacity never exceeds configured maximum | Drafted |
+| TC-D03 | FR-D03 | Known active assignments and configured capacities | Read workload then complete/fail parcel | Counts update from DB assignments; Courier/Customer cannot read full fleet | Drafted |
+| TC-D04 | FR-D04 | Assigned pre-pickup parcel and two couriers | Race reassignment with old courier pickup, using same expectedVersion | One commit; loser 409 or ownership 404; exactly one active assignment; no post-pickup reassignment | Drafted |
+| TC-D05 | FR-D05 | Multiple zones/statuses and date fixtures | Request zone summary for range | Per-zone/status counts match scoped records; forbidden role rejected | Drafted |
+| TC-A01 | FR-A01 | Admin and Customer, last-Admin fixture | Create/read/update/deactivate user; attempt as Customer | Audited Admin changes; no hashes exposed; Customer 403; disabled login/refresh denied | Drafted |
+| TC-A02 | FR-A02 | Admin and active roles | Change roles, attempt remove last Admin; retry downstream with old JWT after expiry | Audited approved roles; last Admin protected; stale role no longer accepted after ≤15-minute bound | Drafted |
+| TC-A03 | FR-A03 | Pending merchant, Admin and applicant | Review list then approve/reject; attempt as applicant | Admin-only status change; business reason/audit; applicant cannot approve self | Drafted |
+| TC-A04 | FR-A04 | Admin zone config | Create/update zone; test overlaps and non-Admin | Valid versioned zones; overlap rejected; unauthorized 403; no silent invalid routing | Drafted |
+| TC-A05 | FR-A05 | Admin pricing config and earlier quote | Version pricing tier; confirm still-valid previous quote | Versioned tariff and old immutable quote honored; invalid negative fee rejected | Drafted |
+| TC-A06 | FR-A06 | Delivered, Failed, Cancelled histories across UTC boundaries | Request explicit date report and zero-outcome report | Daily counts, denominator delivered+failed, rates or zero match fixtures; Cancelled separate; non-Admin 403 | Drafted |
+| TC-A07 | FR-A07 | Audit events and redacted credentials | Read audit as Admin then Customer; inspect payloads | Admin-only safe action/resource/result records; no secrets/password/request bodies | Drafted |
+| TC-N01 | NFR-01 | API timing load fixture | Warm normal-load APIs; collect ≥1000 requests and p95 excluding SSE connection lifetime | p95 ≤500ms; publish dataset, concurrency and hardware; no measured result assumed | Drafted |
+| TC-N02 | NFR-02 | Connected authenticated SSE clients | Commit status and timestamp receipt using synchronized clocks | Visible snapshot within 2s under specified load; record commit-to-client distribution | Drafted |
+| TC-N03 | NFR-03 | All mandatory clients seeded | Run 50 concurrent authorized users through defined workflow mix | No lost/duplicated booking or unauthorized data; publish errors/latency/resource use | Drafted |
+| TC-N04 | NFR-04 | Configured non-loopback ingress and device trust | Try HTTP, invalid cert and HTTPS; inspect TLS and cookies | External HTTPS TLS1.2+ with valid trust; reject plaintext nonlocal; Secure cookies | Drafted |
+| TC-N05 | NFR-05 | Local/Google and refresh session fixtures | Verify app expiry, signature/audience, replay, logout and disabled account | JWT ≤900s; fresh tokens refused after revocation; existing access bound explicit | Drafted |
+| TC-N06 | NFR-06 | Merchant key fixture and DB access for test | Create key; inspect rows/logs; revoke and use next request | Only salted digest stored, one-time raw display; no credential logs; revoked key fails | Drafted |
+| TC-N07 | NFR-07 | Fixed raw webhook bytes and secret | Verify valid signature, alter body/timestamp, verify later retry | Timestamp.rawBytes HMAC only; invalid/replayed/stale request rejected; fresh retry succeeds | Drafted |
+| TC-N08 | NFR-08 | Role/owner matrix across REST GraphQL and internal calls | Attempt missing/wrong JWT, foreign merchant/courier and key scopes | 401/403/404 as defined; no data/side effects; no bypass through GraphQL | Drafted |
+| TC-N09 | NFR-09 | Mounted secret/key fixture | Inspect secret columns, mounts, logs and backups; try Worker key access | AEAD ciphertext/key version; no plaintext Git/log values; Worker cannot decrypt Merchant keys | Drafted |
+| TC-N10 | NFR-10 | Parallel request barrier and fingerprint fixture | Send 20 identical concurrent booking/order requests then changed payload | One logical resource, original response on duplicates, changed payload 409 | Drafted |
+| TC-N11 | NFR-11 | Broker can be disconnected during transaction | Commit status during outage; crash relay after confirm; restore | History/state/outbox persist; eventually publishes; duplicate consumer has one intended effect | Drafted |
+| TC-N12 | NFR-12 | Deterministic clock and injected HTTP transport | Return 500/429 then success and all-six-fail; advance schedule | Six max automatic attempts at 0/1/6/21/51/111m minima, Retry-After honored, fresh signature each | Drafted |
+| TC-N13 | NFR-13 | Failed webhook job belonging to business A | Inspect/replay as A, then B; inspect audit | Own safe attempts and audited replay only; foreign 404; stable event ID retained | Drafted |
+| TC-N14 | NFR-14 | Four initialized DBs and app roles | Connect using each role then attempt other three databases | Own DB works; foreign connection/SQL denied; no shared credentials | Drafted |
+| TC-N15 | NFR-15 | Pinned broker/MassTransit integration fixture | Inspect exchanges/queues, publish duplicate status, fail consumer | Declared type fanout and independent queues; proper dedup, 3 immediate retries then error | Drafted |
+| TC-N16 | NFR-16 | Empty Docker machine and real source images/migrations | Start Compose, check all four DB migrations, readiness and mandatory smoke flows | All required components healthy; commands/source/tool versions attached; no placeholder images | Drafted |
+| TC-N17 | NFR-17 | Business logic unit suite and Coverlet report | Collect line and branch coverage using documented exclusions | Business-logic line coverage ≥80%; branch separately reported; CI artifact/commit/date required | Drafted |
+| TC-N18 | NFR-18 | React browser fixture | Test public tracking and mandatory screens at 320px, tablet and desktop widths | No horizontal overflow; safe tracking and receipt/dashboard/report controls usable | Drafted |
+| TC-N19 | NFR-19 | Validation/auth/domain/dependency failures | Invoke representative 400/401/403/404/409/422/429/503 outcomes | Stable safe ProblemDetails/GraphQL codes/correlation; no secret/private field leakage | Drafted |
+| TC-N20 | NFR-20 | Flutter Customer/Courier on API 26+ | Authenticate, Customer booking/tracking/receipt, Courier status/proof, network reconnect | Both personas complete authorized flows on recorded emulator/device/API level | Drafted |
+| TC-SEC-01 | FR-C06, NFR-08 | Anonymous REST/GraphQL fixture | Query safe tracking plus all attempted private nested fields/aliases/fragments | Only allowlisted fields serialize; GraphQL rejects private fields; no addresses/phone/proof/courier/precise GPS | Drafted |
+| TC-SEC-02 | FR-R02, FR-R03, NFR-08 | Courier A/B and assigned parcel | A attempts B status/POD; Dispatcher attempts Courier operational action | 404 for foreign courier, 403 for wrong role; DB/history/outbox/storage unchanged | Drafted |
+| TC-SEC-03 | FR-M04, FR-M06, NFR-08 | Businesses A/B with active keys | A attempts B job, webhook attempts, dashboard and caller-supplied merchantId | 404/403 or invalid-field rejection; no cross-business results | Drafted |
+| TC-SEC-04 | FR-M05, NFR-07 | Webhook raw bytes, synchronized fake clock | Modify body, stale/future timestamp, replay event after first accepted request | HMAC/tolerance reject tampering; valid duplicate is 2xx with no repeated business effect | Drafted |
+| TC-SEC-05 | FR-C02, NFR-08 | Existing local email with no provider link | Exchange matching-email Google ID token; try subject already owned; reauthenticate and link | Collision rejected until verified own-account link; no automatic email takeover | Drafted |
+| TC-SEC-06 | FR-M05, NFR-09 | Injected DNS/HTTP client and URL validator | Try localhost, private/metadata, IPv6-mapped, rebinding, redirect and mixed safe/unsafe answers | Rejected at registration and send; no internal outbound request; safe log code only | Drafted |
+| TC-SEC-07 | FR-C08, FR-R03, NFR-08 | Owner/stranger and private proof/receipt | Attempt raw object/public downloads, expired auth, wrong-owner downloads | Private bucket denies anonymous; service rejects foreign, no raw public URL; valid owner stream works | Drafted |
+| TC-SEC-08 | FR-A02, FR-M03, NFR-05 | Active JWT and merchant key | Change role/deactivate user; try refresh then old JWT after expiry; revoke key | No new sessions; old access rejected within bound; key rejected on immediate next Merchant request | Drafted |
+| TC-REC-01 | FR-C04, NFR-10 | 20 parallel threads, same quote/key | Synchronize identical requests then changed fingerprint; repeat committed key after quote expiry | Exactly one parcel/snapshot/outbox; duplicates identical response; changed fingerprint 409 | Drafted |
+| TC-REC-02 | FR-M04, FR-M07, NFR-10 | Delivery commits but gRPC response is dropped | Poll job; reconcile by external order; retry with rotated API key | Job eventually Created and same parcel; no duplicate after key rotation; status never falsely Failed | Drafted |
+| TC-REC-03 | FR-R02, NFR-11 | Broker disconnected at commit | Update status then restart relay/broker; crash after publisher confirmation | Committed state/outbox recover; repeated event ID; unique downstream jobs | Drafted |
+| TC-REC-04 | FR-M05, NFR-11 | Duplicate/reordered StatusChanged messages | Deliver event twice and lower parcelVersion later; replay from broker error queue | One notification/recipient/channel and webhook/subscription; no SSE status regression | Drafted |
+| TC-REC-05 | FR-D04, FR-R02, NFR-08 | Concurrent assignment/status transactions | Race reassign versus pickup with same expectedVersion | Only one wins; valid capacity/current assignment, losing 409/404; no unauthorized transition | Drafted |
+| TC-REC-06 | FR-R03, NFR-11 | Object store and DB fault injection | Fail object write then fail DB commit after stored proof; retry same key; run cleanup | No false Delivered; one final event after valid commit; referenced proof retained, orphan removed after 24h | Drafted |
+| TC-REC-07 | FR-M05, NFR-12 | Deterministic clock and HTTP mock | Return 429 Retry-After, 500, timeout then 200; test all-six failure | Exact attempt policy; fresh timestamp/HMAC; stable event ID; durable failure/attempt records | Drafted |
+| TC-REC-08 | FR-C06, NFR-02 | React fetch SSE and Flutter streaming fixture | Disconnect during status commits; reconnect/subscribe then snapshot; expire token; reassign courier | Latest authorized version recovered; buffering closes race; old courier stream stops; no cursor replay claim | Drafted |
 
-This document catalogs test scenarios, acceptance criteria, test fixtures, and expected results covering all critical functional modules of the SwiftDrop platform. Each test case maps directly to requirements defined in the [Software Requirements Specification (SRS)](../requirements/srs.md).
-
----
-
-## 2. Module 1: Authentication & Identity Management
-
-| Test Case ID | Test Scenario | Pre-conditions | Test Steps | Expected Result | Level | SRS Trace |
-|---|---|---|---|---|---|---|
-| **TC-AUTH-001** | Successful Google OIDC token exchange | Valid Google ID token with verified email | 1. POST `/api/v1/auth/google` with `{ idToken }`<br/>2. Inspect HTTP status & response | 200 OK; returns valid RS256 JWT access token and refresh token; provisions user with `Customer` role | Integration | REQ-FR-CUST-01 |
-| **TC-AUTH-002** | Rejection of expired Google token | Expired Google ID token | 1. POST `/api/v1/auth/google` with expired token | 401 Unauthorized; ProblemDetails indicates token expiration | Unit | REQ-NFR-SEC-01 |
-| **TC-AUTH-003** | Refresh token rotation (RTR) | Active, unrevoked refresh token | 1. POST `/api/v1/auth/refresh`<br/>2. Inspect returned tokens<br/>3. Re-present the old refresh token | Step 1: 200 OK with new access + refresh token.<br/>Step 3: 401 Unauthorized; token family revoked due to replay attempt | Integration | REQ-NFR-SEC-01 |
-| **TC-AUTH-004** | User logout & session invalidation | Authenticated session with active JWT | 1. POST `/api/v1/auth/logout`<br/>2. Present JWT to protected endpoint | 200 OK; JWT `jti` added to Redis blacklist; subsequent calls return 401 Unauthorized | Integration | REQ-FR-CUST-01 |
-| **TC-AUTH-005** | Unauthorized role access rejection | Authenticated user with `Customer` role | 1. Attempt GET `/api/v1/deliveries/available-couriers` | 403 Forbidden; ProblemDetails indicates role `Dispatcher` or `Admin` required | Integration | REQ-FR-DISP-02 |
-
----
-
-## 3. Module 2: Parcel Booking & Pricing Engine
-
-| Test Case ID | Test Scenario | Pre-conditions | Test Steps | Expected Result | Level | SRS Trace |
-|---|---|---|---|---|---|---|
-| **TC-BOOK-001** | Standard parcel booking with valid payload | Authenticated user (`Customer`) | 1. POST `/api/v1/parcels` with valid addresses and 2.5kg weight | 201 Created; returns tracking number matching `TRK-YYYYMM-XXXXXX`; status is `Created`; `ParcelBooked` event written to Outbox table | Integration | REQ-FR-CUST-02 |
-| **TC-BOOK-002** | Validation rejection on missing postal code | Authenticated user | 1. POST `/api/v1/parcels` with missing `deliveryAddress.postalCode` | 400 Bad Request; ProblemDetails lists field validation error for `postalCode` | Unit | REQ-FR-CUST-02 |
-| **TC-BOOK-003** | Dynamic pricing calculation accuracy | Pure pricing service fixture | 1. Invoke `CalculatePrice(weight: 7.5kg, type: Express, fragile: true)` | Formula matches: Base(450) + Weight(5 * 60) + Express(200) + Fragile(100) = 1,050 LKR | Unit | REQ-FR-CUST-03 |
-| **TC-BOOK-004** | Cancellation of pending parcel by owner | Parcel in `Created` status | 1. PUT `/api/v1/parcels/{id}/cancel` by original creator | 200 OK; status transitions to `Cancelled`; outbox event `ParcelCancelled` generated | Integration | REQ-FR-CUST-04 |
-| **TC-BOOK-005** | Disallow cancellation of picked-up parcel | Parcel in `InTransit` status | 1. PUT `/api/v1/parcels/{id}/cancel` | 409 Conflict; message states parcel cannot be cancelled once collected | Unit | REQ-FR-CUST-04 |
-
----
-
-## 4. Module 3: Courier Dispatch & Delivery Execution
-
-| Test Case ID | Test Scenario | Pre-conditions | Test Steps | Expected Result | Level | SRS Trace |
-|---|---|---|---|---|---|---|
-| **TC-DELV-001** | Manual courier assignment by Dispatcher | Parcel in `Created` state; Courier is `OnDuty` | 1. POST `/api/v1/deliveries/assign` with `{ parcelId, courierId }` | 200 OK; status transitions to `Assigned`; courier assigned count increments | Integration | REQ-FR-DISP-01 |
-| **TC-DELV-002** | Over-capacity assignment rejection | Courier currently has 10 active parcels (max limit) | 1. POST `/api/v1/deliveries/assign` for 11th parcel | 422 Unprocessable Entity; error notes courier capacity limit reached | Unit | REQ-FR-DISP-03 |
-| **TC-DELV-003** | Valid state progression (Pickup -> InTransit) | Delivery assigned to courier | 1. Courier calls PUT `/api/v1/deliveries/{id}/status` to `PickedUp`<br/>2. Courier calls PUT to `InTransit` | Both return 200 OK; tracking timeline records both events with timestamps | Integration | REQ-FR-COUR-02 |
-| **TC-DELV-004** | Illegal state transition rejection | Delivery in `Created` state | 1. Attempt transition directly to `Delivered` | 409 Conflict; state machine rejects invalid transition from `Created` to `Delivered` | Unit | REQ-FR-COUR-02 |
-| **TC-DELV-005** | Proof of Delivery upload completion | Delivery in `InTransit` state | 1. POST `/api/v1/deliveries/{id}/pod` with signature PNG & photo JPEG | 200 OK; status becomes `Delivered`; PoD files stored; `DeliveryCompleted` event published | Integration | REQ-FR-COUR-03 |
-
----
-
-## 5. Module 4: Merchant Integration & Webhook Delivery
-
-| Test Case ID | Test Scenario | Pre-conditions | Test Steps | Expected Result | Level | SRS Trace |
-|---|---|---|---|---|---|---|
-| **TC-MRCH-001** | Valid merchant API key authentication | Approved merchant with generated API key | 1. GET `/api/v1/merchant/parcels` with `X-API-Key: sk_live_...` | 200 OK; returns list of merchant's parcels | Integration | REQ-FR-MRCH-01 |
-| **TC-MRCH-002** | Bulk consignment ingestion (50 orders) | Valid merchant API key | 1. POST `/api/v1/merchant/parcels/bulk` with 50 order items | 202 Accepted; returns 50 tracking numbers and batch UUID; DB records all parcels | Integration | REQ-FR-MRCH-02 |
-| **TC-MRCH-003** | Webhook delivery with valid HMAC signature | Registered merchant webhook URL | 1. Trigger `DeliveryCompleted` event<br/>2. Intercept HTTP POST at webhook URL | Payload received with `X-SwiftDrop-Signature` matching `HMAC-SHA256(payload, secret)` | E2E | REQ-FR-MRCH-03 |
-| **TC-MRCH-004** | Webhook retry on endpoint failure (500 Server Error) | Merchant receiver returns 500 | 1. Trigger event<br/>2. Worker attempts delivery<br/>3. Inspect retry schedule | Retried up to 5 times with exponential backoff (1m, 5m, 15m, 30m, 1h); moves to DLQ on 5th failure | Integration | REQ-FR-MRCH-03 |
-
----
-
-## 6. Module 5: Real-Time Tracking & WebSockets
-
-| Test Case ID | Test Scenario | Pre-conditions | Test Steps | Expected Result | Level | SRS Trace |
-|---|---|---|---|---|---|---|
-| **TC-REAL-001** | Courier GPS streaming broadcast | Courier connected via WebSocket Hub | 1. Invoke `PublishLocation(lat, lng)`<br/>2. Observe connected Dispatcher client | Dispatcher receives `OnCourierLocationUpdated` frame within < 200ms | E2E | REQ-FR-COUR-04 |
-| **TC-REAL-002** | Public SSE tracking stream updates | Customer connected to `/api/v1/parcels/track/{trk}/live` | 1. Advance parcel status from `PickedUp` to `InTransit` | SSE client receives JSON event payload automatically without polling | Integration | REQ-FR-CUST-05 |
+Legacy REQ-FR-CUST/COUR/MRCH and inconsistent old TC-AUTH/BOOK/DELV labels are retired; the SRS FR-C/M/R/D/A and NFR IDs above are canonical. GraphQL/REST write-equivalence tests apply to booking/quote/assignment/status with identical roles, payload, version and idempotency behavior. The prototype SSE parser and signing snippets are design examples, not tested client/server implementations.

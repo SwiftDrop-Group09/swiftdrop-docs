@@ -56,7 +56,7 @@ Its primary objectives are to:
 - Maintain testing, deployment, and submission documentation.
 - Support collaboration and knowledge sharing among team members.
 
-> **Documentation status:** The repository currently contains the initial documentation scaffold. Individual sections will be populated, reviewed, and updated throughout development. Placeholder files should not be treated as approved specifications.
+> **Documentation status:** The reconciled baseline is Proposed and ready for review. Contracts, diagrams, test cases and deployment references describe the intended system; they do not establish implementation completion or team approval. Evidence gaps are recorded in the remediation ledger.
 
 ---
 
@@ -67,11 +67,11 @@ The following technologies represent the current technical direction. Some imple
 | Layer                   | Technologies                            |
 | ----------------------- | --------------------------------------- |
 | Web Frontend            | React, TypeScript                       |
-| Mobile Application      | Flutter, Dart                           |
+| Mobile Application      | Flutter Customer and Courier, Dart                           |
 | Backend                 | ASP.NET Core, C#                        |
 | Database                | PostgreSQL                              |
 | API Communication       | REST, GraphQL, gRPC                     |
-| Real-Time Communication | WebSockets                              |
+| Real-Time Communication | Authenticated SSE in Delivery                              |
 | Messaging               | RabbitMQ, MassTransit                   |
 | Authentication          | JWT, OAuth 2.0 / OpenID Connect         |
 | Containerization        | Docker, Docker Compose                  |
@@ -131,7 +131,7 @@ The proposed architecture separates:
 | Frontend Aggregation   | GraphQL              | Web and mobile queries and mutations |
 | Internal RPC           | gRPC                 | Synchronous service communication    |
 | Publish/Subscribe      | RabbitMQ             | Asynchronous event distribution      |
-| Real-Time Push         | WebSockets           | Live parcel tracking                 |
+| Real-Time Push         | SSE in Delivery           | Live parcel tracking                 |
 | Reliable Messaging     | Transactional Outbox | Durable event publication            |
 | External Notifications | Webhooks             | Merchant status updates              |
 
@@ -159,7 +159,7 @@ This repository maintains project-wide requirements, design decisions, architect
 
 Implementation-specific documentation remains within the corresponding source repository.
 
-**Authoritative executable contracts**, including protobuf definitions, GraphQL schemas, and implementation-level API specifications, should be maintained alongside their owning code and referenced here rather than duplicated.
+**Implementation contracts** belong alongside owning code. This repository now includes validated **design fixtures** for routes, GraphQL, protobuf and events; backend commit parity must be verified before they become an implementation baseline.
 
 ---
 
@@ -242,7 +242,7 @@ All team members are encouraged to maintain documentation alongside their develo
    git push -u origin docs/update-architecture
    ```
 
-6. Open a Pull Request targeting `main`.
+6. Open a Pull Request targeting the agreed baseline branch (`documentation` for this remediation).
 
 7. Request review from the relevant document or component owner before merging.
 
@@ -323,8 +323,8 @@ The final submission must address the required assessment areas:
 
 ### Bonus Targets
 
-- **Kubernetes Deployment:** Up to 5 additional marks.
-- **AI Delivery Assistant:** Up to 5 additional marks.
+- **Kubernetes Deployment:** Optional bonus; exact additional marks require assignment-PDF verification.
+- **AI Delivery Assistant:** Independent optional bonus; exact scoring requires assignment-PDF verification.
 
 ### Submission Materials
 
@@ -359,3 +359,12 @@ Individual responsibilities, module ownership, and contribution records will be 
 **SwiftDrop — Connecting deliveries through modern enterprise technology.**
 
 _Maintained by SwiftDrop Group 09._
+
+
+## Documentation remediation baseline 2.0
+
+**Status: Proposed; team approval pending.** The [supplied fix plan](documentation-fix-plan.md) is tracked issue by issue in the [remediation ledger](documentation-remediation.md). The [decision register](architecture/decisions/README.md) keeps DEC-01–DEC-12 Proposed; no member approval or implementation completion is invented. [Assignment overview](requirements/assignment-overview.md) separates official constraints from team choices; the missing lecturer PDF still requires verification. Assessment is 20 marks overall with 20/50/15/15 category weights.
+
+Canonical design sources are [service catalog](architecture/service-catalog.md), [parcel states](architecture/parcel-state-machine.md), [REST](api/rest-api.md), [events](integration/event-catalog.md), [authentication](security/authentication.md) and [environment matrix](deployment/environments.md). Three APIs + YARP + Worker use four logical DBs on one PostgreSQL instance. GraphQL and SSE live in Delivery; Merchant owns webhook signing/attempts; no cross-service SQL. Redis/GPS/SignalR and bulk ingestion are deferred. React covers all roles/public tracking and Flutter covers Customer **and** Courier. Mandatory receipt, merchant dashboard and Admin reports have explicit interfaces/tests/demo steps.
+
+[Traceability](requirements/requirements-traceability.md) covers **32 FR + 20 NFR = 52** with **68 drafted test cases**, not passing application tests. [Diagram index](design/diagrams/README.md) links sources/exports and four required workflows. [Validation results](testing/documentation-validation.md) record checks actually run; [runtime results](testing/test-results.md) remain unevidenced. [Reference Compose](deployment/docker-compose.md) needs real source images, migrations and secret provisioning before full startup. Named owners/contributions, reviewed PR sign-off and final report submission remain team tasks. External deadline: **15 November 2026**; optional internal freeze: **12 November**.

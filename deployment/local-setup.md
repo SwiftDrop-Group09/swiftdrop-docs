@@ -1,183 +1,32 @@
-# Local Development Setup Guide
+# Local Setup: Web, Backend and Flutter
 
-> **Status:** Draft  
-> **Version:** 1.0  
-> **Last Updated:** October 2026  
+> Status: Proposed onboarding guide · No application source or tested build supplied here
 
----
+## Repository and toolchain
 
-## 1. Prerequisites & Tooling Requirements
+This repository contains documentation, design contracts and infrastructure reference files only. The organization lists `swiftdrop-backend`, `swiftdrop-frontend`, `swiftdrop-mobile` and `swiftdrop-infra`; OPS must verify access, actual paths/commands and commit links before onboarding is considered tested. There is no assumed swiftdrop-platform monorepo. Obtain the .NET/Node/Flutter versions from each source repository's lock/config files, then record tested versions. Install Git, Docker Engine/Desktop with Compose, an Android SDK/emulator, Java required by the mobile project and Flutter; run `flutter doctor -v` and `flutter devices`.
 
-Before setting up SwiftDrop on your workstation, verify that the following runtimes and tools are installed:
+## Infrastructure and backend
 
-| Tool / Runtime | Minimum Version | Verification Command | Purpose |
-|---|---|---|---|
-| **.NET SDK** | `8.0.x` | `dotnet --version` | Backend microservices, YARP gateway, EF Core |
-| **Node.js & npm** | `v20.x LTS` / `npm v10+` | `node -v && npm -v` | Frontend SPAs (Vite/React dashboards) |
-| **Docker Desktop / Engine** | `24.0+` with Compose v2 | `docker compose version` | Local infrastructure (Postgres, RabbitMQ, Redis) |
-| **Git** | `2.40+` | `git --version` | Version control |
-| **curl / httpie / Postman** | Latest | `curl --version` | API testing and endpoint verification |
+1. Follow [Compose preparation](docker-compose.md), populate ignored `deployment/.env` with unique local-only secrets, and validate `config --quiet`.
+2. Start default infrastructure profile; verify DB bootstrap, broker users, object bucket policy and health. Four DBs share `postgres:5432` with separate app credentials.
+3. In the backend source repository, restore/build, apply **each** Identity/Delivery/Merchant/Notifications migration, and seed roles, a local Admin, zones, pricing and fictional fixtures. Exact project paths and commands require code links; no solution file exists here.
+4. Provision Identity JWT signing keys, Merchant AEAD key and service JWT credentials through ignored mounted files. Configure trusted issuer/audience/JWKS and workload scopes. Do not reuse sample credentials beyond the local demo.
+5. Configure YARP routes and trusted origins from [environment matrix](environments.md); ensure internal routes are unreachable publicly. Build/tag real application images and enable the reference application profile only once the image/migration contract is satisfied.
 
----
+## React
 
-## 2. Step-by-Step Repository Setup
+Use the frontend repository's package manager/lockfile and documented install/dev command. Set its public API base to `http://localhost:5000` for loopback, not a container DNS address. Set allowed web origin `http://localhost:5173`; refresh-cookie/CSRF policy must match. React supports all five roles and a safe public tracking page at mobile width. Customer receipt, Merchant dashboard and Admin reports are mandatory UI demo entries.
 
-### 2.1. Clone Repository & Submodules
-```bash
-git clone https://github.com/swiftdrop/swiftdrop-platform.git
-cd swiftdrop-platform
-```
+## Flutter Customer and Courier
 
-### 2.2. Environment Configuration
-Create a local `.env` file from the provided template:
-```bash
-cp .env.example .env
-```
+1. Obtain the actual mobile source and run `flutter pub get`, `flutter doctor -v`, `flutter devices`. Android minimum API level is **26** (SRS NFR-20); configure build SDK/Gradle according to the project's pinned toolchain. Do not guess compatible versions.
+2. Configure **both personas** in the same agreed mobile deliverable: Customer quote/confirm/tracking/history/receipt; Courier assigned manifest/status/failure/proof. Camera/photo permission must be limited to proof capture; continuous GPS is deferred.
+3. Create configured Google web/server and Android clients. Register the Android application/package ID and debug/release signing fingerprints from the mobile project; add allowed web origins and SDK configuration. Both client flows submit Google SDK ID token to GoogleLogin; there is no SwiftDrop backend code callback. If SDK uses browser redirects/deep links, register the exact SDK-generated scheme/URI in Android manifest and Google config, test cold-start/cancel handling and record values in ignored environment config. No invented redirect URL is required by the ID-token backend contract.
+4. Prefer `adb reverse tcp:5000 tcp:5000` and API_BASE_URL `http://localhost:5000` in an isolated debug build; any cleartext exception is debug-only. Emulator `10.0.2.2` refers to host, not Android localhost, and requires a reachable TLS ingress if used outside loopback. Physical device/LAN uses a device-trusted TLS ingress and configured base URL; do not expose unauthenticated plain HTTP listeners broadly.
+5. Once source exists, start with `flutter run --dart-define=API_BASE_URL=<configured-base>` if supported by that project's bootstrap. Provide the actual entrypoint/build command in its README. Public compile-time URLs/client IDs are not credentials; store refresh tokens in platform secure storage.
+6. Provision fictional Customer and Courier accounts locally; an Admin grants Courier membership. Record account labels only, distribute generated local passwords privately and never commit them. Verify no client can self-assign roles or access another courier's parcel.
 
-Review key configuration variables in `.env`:
-```ini
-# Core Environment
-ASPNETCORE_ENVIRONMENT=Development
-DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+## Onboarding acceptance
 
-# Ports
-GATEWAY_PORT=5000
-IDENTITY_PORT=5001
-DELIVERY_PORT=5002
-MERCHANT_PORT=5003
-RABBITMQ_UI_PORT=15672
-
-# Database Passwords (Local Dev Defaults)
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=swiftdrop_dev_secret
-
-# JWT Secret & Keys (Dev Only)
-JWT_ISSUER=https://identity.swiftdrop.io
-JWT_AUDIENCE=https://api.swiftdrop.io
-GOOGLE_CLIENT_ID=your-dev-google-client-id.apps.googleusercontent.com
-```
-
----
-
-## 3. Launching Infrastructure via Docker Compose
-
-To run the supporting databases, message broker, and caching layer locally without running full microservice containers:
-
-```bash
-# Start all infrastructure backing services
-docker compose -f docker-compose.infra.yml up -d
-
-# Verify all containers are healthy
-docker compose -f docker-compose.infra.yml ps
-```
-
-This spins up:
-- **`postgres-identity`** (Port `5432`)
-- **`postgres-delivery`** (Port `5433`)
-- **`postgres-merchant`** (Port `5434`)
-- **`rabbitmq`** (Ports `5672` AMQP, `15672` Web Management)
-- **`redis`** (Port `6379`)
-- **`minio`** (Port `9000` S3 API, `9001` Web Console)
-
----
-
-## 4. Applying Database Migrations
-
-Apply Entity Framework Core database migrations for all three bounded contexts:
-
-```bash
-# 1. Identity Service Migrations
-dotnet ef database update \
-  --project src/Services/Identity/SwiftDrop.Identity.Infrastructure \
-  --startup-project src/Services/Identity/SwiftDrop.Identity.Api
-
-# 2. Delivery Operations Service Migrations
-dotnet ef database update \
-  --project src/Services/Delivery/SwiftDrop.Delivery.Infrastructure \
-  --startup-project src/Services/Delivery/SwiftDrop.Delivery.Api
-
-# 3. Merchant Integration Service Migrations
-dotnet ef database update \
-  --project src/Services/Merchant/SwiftDrop.Merchant.Infrastructure \
-  --startup-project src/Services/Merchant/SwiftDrop.Merchant.Api
-```
-
----
-
-## 5. Starting Backend Microservices
-
-You can run all services concurrently using the .NET `launchSettings.json` compound configuration or manually in separate terminal windows:
-
-### Terminal 1: Identity Service
-```bash
-cd src/Services/Identity/SwiftDrop.Identity.Api
-dotnet run --launch-profile "Development"
-# Listening on http://localhost:5001
-```
-
-### Terminal 2: Delivery Operations Service
-```bash
-cd src/Services/Delivery/SwiftDrop.Delivery.Api
-dotnet run --launch-profile "Development"
-# Listening on http://localhost:5002
-```
-
-### Terminal 3: Merchant Integration Service
-```bash
-cd src/Services/Merchant/SwiftDrop.Merchant.Api
-dotnet run --launch-profile "Development"
-# Listening on http://localhost:5003
-```
-
-### Terminal 4: Background Webhook Worker
-```bash
-cd src/Workers/SwiftDrop.WebhookWorker
-dotnet run
-```
-
-### Terminal 5: YARP API Gateway
-```bash
-cd src/Gateway/SwiftDrop.Gateway
-dotnet run --launch-profile "Development"
-# Listening on http://localhost:5000
-```
-
----
-
-## 6. Starting Web Frontend Client
-
-```bash
-cd src/Clients/web-portal
-npm install
-npm run dev
-# Vite dev server running at http://localhost:3000
-```
-
----
-
-## 7. Verification & Health Check Smoke Tests
-
-Run the automated local verification smoke check:
-
-```bash
-# Verify Gateway Health
-curl -s http://localhost:5000/health | jq .
-
-# Expected Output:
-# {
-#   "status": "Healthy",
-#   "results": {
-#     "identity": "Healthy",
-#     "delivery": "Healthy",
-#     "merchant": "Healthy"
-#   }
-# }
-```
-
-- **RabbitMQ Dashboard:** `http://localhost:15672` (User: `guest`, Pass: `guest`)
-- **MinIO Storage Console:** `http://localhost:9001` (User: `minioadmin`, Pass: `minioadmin`)
-- **Swagger UI (Direct):**
-  - Identity: `http://localhost:5001/swagger`
-  - Delivery: `http://localhost:5002/swagger`
-  - Merchant: `http://localhost:5003/swagger`
-- **GraphQL Banana Cake Pop Playground:** `http://localhost:5002/graphql`
+A new member must demonstrate local signup and Google login; Customer quote/decline/requote/confirm; mobile-safe public tracking; own history/receipt; Dispatcher assignment; Flutter Courier statuses and proof; notifications and merchant webhook; Merchant job/dashboard; Admin delivery report. Attach source commits, commands, device/emulator/API level, logs/screenshots and [test results](../testing/test-results.md). Until that evidence exists, this guide is a proposed checklist rather than a claim that the entire system starts successfully.
