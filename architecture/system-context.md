@@ -24,7 +24,7 @@ flowchart TB
 
     google["☁️ Google OIDC\n\nExternal identity\nprovider"]
 
-    swiftdrop["📦 SwiftDrop Platform\n\nParcel delivery and courier\nmanagement system\n\nASP.NET Core · React · Flutter\nPostgreSQL · RabbitMQ"]
+    swiftdrop["📦 SwiftDrop Platform\n\nParcel delivery and courier\nmanagement system\n\nASP.NET Core 10 (.NET 10) · React · Flutter\nPostgreSQL · RabbitMQ"]
 
     customer -->|"Books parcels\nTracks deliveries\n[HTTPS + SSE]"| swiftdrop
     courier -->|"Updates delivery status\nUploads proof\n[HTTPS]"| swiftdrop

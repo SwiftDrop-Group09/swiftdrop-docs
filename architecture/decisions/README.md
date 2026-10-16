@@ -37,7 +37,7 @@ Options considered:
 
 #### Decision
 
-Adopt **YARP** as the API gateway implemented within an ASP.NET Core host.
+Adopt **YARP** as the API gateway implemented within an **ASP.NET Core 10 / .NET 10** host targeting `net10.0`.
 
 #### Rationale
 

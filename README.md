@@ -68,7 +68,7 @@ The following technologies represent the current technical direction. Some imple
 | ----------------------- | --------------------------------------- |
 | Web Frontend            | React, TypeScript                       |
 | Mobile Application      | Flutter Customer and Courier, Dart                           |
-| Backend                 | ASP.NET Core, C#                        |
+| Backend                 | .NET 10, ASP.NET Core 10, C# (`net10.0`) |
 | Database                | PostgreSQL                              |
 | API Communication       | REST, GraphQL, gRPC                     |
 | Real-Time Communication | Authenticated SSE in Delivery                              |

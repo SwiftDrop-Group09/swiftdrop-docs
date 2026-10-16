@@ -372,7 +372,7 @@ stateDiagram-v2
 
 ## 4. Notification Database (Worker Host)
 
-The Notification database is owned by the Notification Consumer component running in the .NET Worker host. It records consumed notification events, scheduled alerts (Email and mock SMS), and transmission audit logs.
+The Notification database is owned by the Notification Consumer component running in the .NET 10 Worker host (ASP.NET Core 10 for private HTTP health endpoints). It records consumed notification events, scheduled alerts (Email and mock SMS), and transmission audit logs.
 
 ```mermaid
 erDiagram

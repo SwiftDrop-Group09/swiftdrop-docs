@@ -2,6 +2,8 @@
 
 > Status: Proposed baseline 2.0 · 16 October 2026 · DEC-03/04/08/10/11/12 awaiting team approval
 
+The gateway, three capability APIs and Notification/Webhook Worker target **.NET 10** (`net10.0`). All five hosts use ASP.NET Core 10, including the Worker's private HTTP health endpoints. SDK/package patch pins belong in the owning implementation repositories; see the [runtime target](technical-design.md#net-runtime-target).
+
 ## Canonical process inventory
 
 | Compose process | Responsibility | Container listener | Host development address | Data owner |

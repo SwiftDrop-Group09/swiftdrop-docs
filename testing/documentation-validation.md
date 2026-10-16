@@ -8,6 +8,7 @@ The following commands were executed locally against the revised files. These ar
 |---|---|---|
 | Markdown integrity | `python scripts/validate-docs.py` | PASS: link validation rerun after assignment alignment; all relative paths/anchors/images resolve across 54 Markdown files; zero reported errors |
 | Assignment source comparison | Original/copy byte comparison, four-page text extraction and visual review | PASS: unchanged [assignment PDF](../requirements/sources/ead-group-assignment.pdf), page-cited [compliance map](../requirements/assignment-compliance.md); exact +5 bonus labels verified; grading conversion remains open |
+| .NET target documentation | Runtime-reference audit, diagram regeneration and PDF text/preview review | PASS: .NET 10 / ASP.NET Core 10 / net10.0 target is explicit in stack, service, setup/CI and diagram documentation; no application build or package compatibility test is claimed |
 | Route/requirement/test consistency | Same validator | PASS: 57 unique canonical operations; 32 FR + 20 NFR = 52 mapped; 68 unique drafted cases; three required priorities Must |
 | JSON/event schema | Draft 2020-12 validator plus format checks | PASS: JSON parses; event example validates; injected private address field rejected; canonical state mapping matches |
 | GraphQL design | `node scripts/validate-graphql.mjs` | PASS: SDL and safe public query valid; attempted private fields rejected by schema; runtime resolvers not tested |

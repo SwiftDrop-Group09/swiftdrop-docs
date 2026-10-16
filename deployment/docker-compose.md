@@ -21,6 +21,8 @@ Rabbit bootstrap creates delivery_bus and worker_bus scoped users, with explicit
 
 ## Application profile prerequisites
 
+The three APIs, YARP gateway and Worker images must be built with the **.NET 10 SDK**, target `net10.0`, and use an **ASP.NET Core 10 runtime** (including the Worker's HTTP health host). Pin tested SDK/runtime image patches or digests in the owning Dockerfiles; the reference Compose image names do not select a framework runtime by themselves.
+
 This documentation repository has **no backend/frontend implementation or Dockerfiles**. `design-unbuilt` image names are deliberate placeholders. Before using `--profile application`, provide real images, their build/source commit links, a migration job per DB, supported `/app/healthcheck` executable, actual YARP route config, signing/encryption keys, workload JWT credentials and trusted Google client IDs. Mount secrets as files; do not bake keys into images. The environment names in this reference are the proposed configuration contract and must be mapped by the actual code. Web runtime base-URL injection also needs implementation support.
 
 YARP routes only catalogued public prefixes to the correct API, `/graphql` and SSE to Delivery, and JWKS to Identity. Block `/internal/*`. Non-loopback clients require configured TLS ingress; domain services still validate JWTs. SSE buffering/timeouts must support heartbeats. Merchant's egress network must be constrained with outbound DNS/IP controls; a Compose network alone does not implement SSRF policy.

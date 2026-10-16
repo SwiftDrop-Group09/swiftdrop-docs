@@ -1,7 +1,7 @@
 [
   {
     "source": "design/diagrams/architecture/architecture.mmd",
-    "sourceSha256": "8506de3c8ec94c36c550aef01ab675317a9d5c53cda8d5e0388347f65b89a0a1",
+    "sourceSha256": "fe468e087210f89d23839352544f375ea2880e3f782987e510671f1ba9b21979",
     "artifact": "design/diagrams/architecture/architecture.svg",
     "result": "PASS",
     "diagramId": "DIA-01",
@@ -184,7 +184,7 @@
   },
   {
     "source": "architecture/system-context.md#mermaid-1",
-    "sourceSha256": "2b0d8f7d9c61d8ed6cfd4d286d8c809c835f16ce177bc1f6fdfb00ada2629bf0",
+    "sourceSha256": "6a6e896b9354af4cece788f8d7bd392e6c4c930d49aa4f5889c81450ab3d8e36",
     "artifact": "design/diagrams/generated/architecture-system-context-1.svg",
     "result": "PASS",
     "diagramId": "DIA-09",
@@ -203,7 +203,7 @@
   },
   {
     "source": "design/diagrams/architecture/architecture.md#mermaid-1",
-    "sourceSha256": "8506de3c8ec94c36c550aef01ab675317a9d5c53cda8d5e0388347f65b89a0a1",
+    "sourceSha256": "fe468e087210f89d23839352544f375ea2880e3f782987e510671f1ba9b21979",
     "artifact": "design/diagrams/generated/design-diagrams-architecture-architecture-1.svg",
     "result": "PASS",
     "diagramId": "DIA-10",

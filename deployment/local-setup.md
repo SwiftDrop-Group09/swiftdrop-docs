@@ -4,7 +4,7 @@
 
 ## Repository and toolchain
 
-This repository contains documentation, design contracts and infrastructure reference files only. The organization lists `swiftdrop-backend`, `swiftdrop-frontend`, `swiftdrop-mobile` and `swiftdrop-infra`; OPS must verify access, actual paths/commands and commit links before onboarding is considered tested. There is no assumed swiftdrop-platform monorepo. Obtain the .NET/Node/Flutter versions from each source repository's lock/config files, then record tested versions. Install Git, Docker Engine/Desktop with Compose, an Android SDK/emulator, Java required by the mobile project and Flutter; run `flutter doctor -v` and `flutter devices`.
+This repository contains documentation, design contracts and infrastructure reference files only. The organization lists `swiftdrop-backend`, `swiftdrop-frontend`, `swiftdrop-mobile` and `swiftdrop-infra`; OPS must verify access, actual paths/commands and commit links before onboarding is considered tested. There is no assumed swiftdrop-platform monorepo. Install the **.NET 10 SDK** for backend work and verify a 10.x SDK with `dotnet --list-sdks`; API/gateway/Worker projects target `net10.0` and ASP.NET Core 10. Pin the tested 10.x patch/feature band in the backend repository's `global.json`. Obtain Node/Flutter versions and backend dependency pins from the owning source repositories' lock/config files, then record tested versions. Install Git, Docker Engine/Desktop with Compose, an Android SDK/emulator, Java required by the mobile project and Flutter; run `flutter doctor -v` and `flutter devices`.
 
 ## Infrastructure and backend
 

@@ -2,25 +2,25 @@
 
 > Status: Proposed baseline 2.0 · 16 October 2026 · DEC-01–DEC-12 sign-off pending
 
-React covers all five roles and mobile-friendly public tracking. Flutter delivers **Customer and Courier** experiences. YARP routes external REST, Delivery GraphQL and authenticated SSE; domain services perform role/ownership checks independently. Three capability APIs plus one Worker are the complete backend process inventory. No separate realtime host or Redis dependency is proposed.
+React covers all five roles and mobile-friendly public tracking. Flutter delivers **Customer and Courier** experiences. YARP routes external REST, Delivery GraphQL and authenticated SSE; domain services perform role/ownership checks independently. Three capability APIs plus one Worker are the complete backend process inventory. These services and YARP target **.NET 10** (`net10.0`), using ASP.NET Core 10 for API/gateway and Worker health hosting. No separate realtime host or Redis dependency is proposed.
 
 ## Component overview
 
 ```mermaid
 flowchart LR
-    R[React all five roles and public tracking] --> G[YARP gateway]
+    R[React all five roles and public tracking] --> G["YARP gateway (.NET 10)"]
     F[Flutter Customer and Courier] --> G
     S[Merchant system] -->|Scoped API key| G
-    G --> I[Identity API]
-    G --> D[Delivery API REST GraphQL SSE]
-    G --> M[Merchant API and processors]
+    G --> I["Identity API (ASP.NET Core 10)"]
+    G --> D["Delivery API (ASP.NET Core 10) REST GraphQL SSE"]
+    G --> M["Merchant API (ASP.NET Core 10) and processors"]
     I --> IDB[(Identity DB)]
     D --> DDB[(Delivery DB and outbox)]
     M --> MDB[(Merchant DB)]
     M -->|CreateBooking and reconciliation gRPC| D
     D --> O[(Private proof and receipt storage)]
     D -->|Local outbox relay| B[RabbitMQ StatusChanged fanout]
-    B -->|notification-status| W[Notification/Webhook Worker]
+    B -->|notification-status| W["Notification/Webhook Worker (.NET 10)"]
     B -->|delivery-realtime| D
     W --> NDB[(Notifications DB)]
     W -->|Scoped DispatchWebhook API| M

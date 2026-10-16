@@ -2,6 +2,8 @@
 
 > Status: Unallocated · No confirmed individual assignments or contributions
 
+Backend responsibilities target **.NET 10** (`net10.0`), with ASP.NET Core 10 for the capability APIs, YARP gateway and Worker health host.
+
 Group 09 has 10 members; names/handles and module allocations were not supplied. Previous Member 1–10 pairings/RACI/completed design work must not be treated as factual assignments. The roles below are **suggested responsibilities**, not attributed work. One person may hold multiple roles; a team meeting must record a named owner, reviewer, agreement date and issue/PR evidence before allocation becomes Confirmed.
 
 | Role | Proposed responsibility | Individual / confirmation |
