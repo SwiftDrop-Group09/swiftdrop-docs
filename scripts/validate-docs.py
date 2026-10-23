@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 local_lib = ROOT / '.validation-tools/python'
 if local_lib.exists():
     sys.path.insert(0, str(local_lib))
-import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 errors = []

@@ -64,7 +64,7 @@ try {
   }
   const svg=readFileSync(path.join(root,'design/diagrams/architecture/architecture.svg'),'utf8');
   const pdfPage=await browser.newPage();
-  await pdfPage.setContent(`<!doctype html><html><head><style>@page{size:594mm 420mm;margin:12mm}body{font-family:Arial,sans-serif;margin:0;color:#122235}h1{font-size:22px;margin:0 0 8px}p{font-size:12px;margin:0 0 8px}svg{display:block;width:100% !important;height:350mm !important;max-width:100%}</style></head><body><h1>SwiftDrop — Proposed Architecture 2.0</h1><p>16 October 2026 · React all roles · Flutter Customer and Courier · Team sign-off pending</p>${svg}<p>Three APIs + YARP + Worker · Four isolated logical databases on one PostgreSQL instance · Delivery hosts GraphQL/SSE · Merchant owns webhook signing/attempts</p></body></html>`);
+  await pdfPage.setContent(`<!doctype html><html><head><style>@page{size:594mm 420mm;margin:12mm}body{font-family:Arial,sans-serif;margin:0;color:#122235}h1{font-size:22px;margin:0 0 8px}p{font-size:12px;margin:0 0 8px}svg{display:block;width:100% !important;height:350mm !important;max-width:100%}</style></head><body><h1>SwiftDrop — Proposed Architecture 2.0</h1><p>16 October 2026 · React all roles · Flutter Customer and Courier · Team sign-off pending</p>${svg}<p>Three APIs + YARP + Worker · Four isolated Neon PostgreSQL databases · Delivery hosts GraphQL/SSE · Merchant owns webhook signing/attempts</p></body></html>`);
   await pdfPage.pdf({path:path.join(root,'design/diagrams/architecture/swiftdrop-architecture.pdf'),preferCSSPageSize:true,printBackground:true});
   await pdfPage.close();
   writeFileSync(path.join(out,'render-results.json'),JSON.stringify(results,null,2)+'\n');

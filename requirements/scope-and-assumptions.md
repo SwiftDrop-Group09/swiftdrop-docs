@@ -10,7 +10,7 @@ Customer scope includes local registration/login, Google login, profile, quote b
 
 ## Team design scope
 
-Three ASP.NET Core 10 capability APIs plus YARP and one Notification/Webhook Worker, all targeting .NET 10 (`net10.0`); four separately owned logical PostgreSQL databases on one instance; RabbitMQ/MassTransit; private object storage; REST, Delivery-hosted GraphQL and internal gRPC. SSE status streams live in Delivery, with one Delivery replica for the demo. See [service catalog](../architecture/service-catalog.md) and [decisions](../architecture/decisions/README.md). These are Proposed choices, not lecturer mandates or proof of implementation.
+Three ASP.NET Core 10 capability APIs plus YARP and one Notification/Webhook Worker, all targeting .NET 10 (`net10.0`); four separately owned logical PostgreSQL databases hosted in Neon; RabbitMQ/MassTransit; private object storage; REST, Delivery-hosted GraphQL and internal gRPC. SSE status streams live in Delivery, with one Delivery replica for the demo. See [service catalog](../architecture/service-catalog.md) and [decisions](../architecture/decisions/README.md). Neon hosting and the delivery-address tariff zone were confirmed by the user on 23 October 2026; other choices remain Proposed. They are not lecturer mandates or proof of full implementation.
 
 ## Deferred and excluded scope
 

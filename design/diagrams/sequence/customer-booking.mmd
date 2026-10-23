@@ -10,33 +10,53 @@ sequenceDiagram
     U->>C: Enter delivery details
     C->>Y: POST /api/v1/quotes (EstimateFee)
     Y->>D: JWT and QuoteInput
-    D->>D: Validate Customer and input, calculate versioned fee
-    alt Invalid input or unauthorized quote request
-        D-->>C: 400 / 401 / 403, no quote or parcel
+    D->>D: Authenticate Customer and validate input and both zones
+    alt Missing or invalid credentials
+        D-->>C: 401, no quote or parcel
+    else Authenticated without Customer role
+        D-->>C: 403, no quote or parcel
+    else Invalid input
+        D-->>C: 400, no quote or parcel
+    else Unsupported or inactive zone
+        D-->>C: 422, no quote or parcel
     else Valid quote request
-    D->>DB: Store owner-bound 10 minute quote
-    D-->>C: 200 quoteId total expiresAt
-    C-->>U: Preview fee
-    alt Customer declines
-        U-->>C: Cancel preview
-        Note over C,DB: No parcel or delivery event
-    else Customer confirms
-        C->>Y: POST /api/v1/parcels (CreateParcel) + Idempotency-Key
-        Y->>D: quoteId and acceptTotal
-        D->>DB: Atomic unique principal/operation/key reservation
-        alt Same key different fingerprint / expired quote / unauthorized
-            D-->>C: 409 / 401 / 403, rollback
-        else Duplicate committed same-key request
-            DB-->>D: Original response
-            D-->>C: Original 201 and parcel
-        else First valid confirmation
-            D->>DB: One transaction: consume quote, parcel Created, price, history, outbox, response
-            DB-->>D: Commit
-            D-->>C: 201 parcel tracking version and Location
-            R->>DB: Read pending StatusChanged
-            R->>B: Publish with stable eventId, await confirmation
-            R->>DB: Mark sent after confirmation
-            Note over R,B: Broker outage leaves row pending, duplicate publish is possible
+        D->>DB: Select tier by deliveryAddress.zoneId, size and version
+        Note over D,DB: Pickup zone validated separately, no cross-zone surcharge
+        D->>DB: Store full input and owner-bound 10 minute quote
+        D-->>C: 200 quoteId total expiresAt
+        C-->>U: Preview fee
+        alt Customer declines
+            U-->>C: Cancel preview
+            Note over C,DB: No parcel or delivery event
+        else Customer confirms
+            C->>Y: POST /api/v1/parcels (CreateParcel) + Idempotency-Key
+            Y->>D: quoteId and acceptTotal
+            D->>D: Authenticate Customer, validate request and key
+            alt Missing or invalid credentials / wrong role / invalid request
+                D-->>C: 401 / 403 / 400
+            else Valid confirmation request
+                D->>DB: Resolve or atomically reserve principal/operation/key
+                alt Changed fingerprint / expired retained key / unresolved concurrent request
+                    D-->>C: 409 conflict, no second booking
+                else Identical committed request within 30 day replay window
+                    DB-->>D: Original status, exact body and Location
+                    D-->>C: Original 201 response, even if quote expired or consumed
+                else New reservation
+                    D->>DB: Read owner-bound quote after committed replay check
+                    alt Quote missing or belongs to another owner
+                        D-->>C: 404, rollback reservation
+                    else Quote expired, consumed or accepted total differs
+                        D-->>C: 409, rollback reservation
+                    else Valid owned quote
+                        D->>DB: One transaction: consume quote, Created parcel, snapshot, history, outbox, response
+                        DB-->>D: Commit
+                        D-->>C: 201 parcel tracking version and Location
+                        R->>DB: Read pending StatusChanged
+                        R->>B: Publish stable eventId and await confirmation
+                        R->>DB: Mark sent after confirmation
+                        Note over R,B: Broker outage leaves row pending, duplicate publish is possible
+                    end
+                end
+            end
         end
-    end
     end

@@ -22,15 +22,15 @@ Delivery atomically commits parcel/history/version/outbox before acknowledging. 
 
 ## Client and infrastructure policy
 
-| Concern | Proposed baseline |
-|---|---|
-| Authentication | Local Argon2id credentials and Google SDK ID-token exchange; app JWT ≤15 minutes; refresh rotation |
-| Status transport | Authenticated fetch-stream SSE in Delivery; public tracking uses safe snapshot REST/GraphQL |
-| Reconnect | Subscribe then fetch snapshot; apply only newer parcel versions; no durable SSE cursor replay promise |
-| Realtime scale | One Delivery replica for demo; a shared competing queue is not broadcast across replicas |
-| Storage | Private object storage; Delivery authorizes proof/receipt download and stages proof before final state |
-| Revocation | Revoke refresh family in Identity DB; access/role changes bounded by 15-minute expiry; no Redis blacklist |
-| Deployment | Compose reference infrastructure; actual source images/migrations and clean-start evidence pending |
-| Additional scope | GPS/SignalR and bulk orders deferred; Kubernetes and AI independent bonuses |
+| Concern          | Proposed baseline                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Authentication   | Local Argon2id credentials and Google SDK ID-token exchange; app JWT ≤15 minutes; refresh rotation                           |
+| Status transport | Authenticated fetch-stream SSE in Delivery; public tracking uses safe snapshot REST/GraphQL                                  |
+| Reconnect        | Subscribe then fetch snapshot; apply only newer parcel versions; no durable SSE cursor replay promise                        |
+| Realtime scale   | One Delivery replica for demo; a shared competing queue is not broadcast across replicas                                     |
+| Storage          | Private object storage; Delivery authorizes proof/receipt download and stages proof before final state                       |
+| Revocation       | Revoke refresh family in Identity DB; access/role changes bounded by 15-minute expiry; no Redis blacklist                    |
+| Deployment       | Canonical infrastructure repository builds the shared stack; Neon provisioning and full product clean-start evidence pending |
+| Additional scope | GPS/SignalR and bulk orders deferred; Kubernetes and AI independent bonuses                                                  |
 
-Exact hosts, protocols and ports are maintained only in the [service catalog](service-catalog.md) and [environment matrix](../deployment/environments.md). The [state machine](parcel-state-machine.md), [REST](../api/rest-api.md), [event catalog](../integration/event-catalog.md) and [decision register](decisions/README.md) govern dependent diagrams. All selected options remain Proposed pending named approver/date and a reviewed PR.
+Exact hosts, protocols and ports are maintained only in the [service catalog](service-catalog.md) and [environment matrix](../deployment/environments.md). The [state machine](parcel-state-machine.md), [REST](../api/rest-api.md), [event catalog](../integration/event-catalog.md) and [decision register](decisions/README.md) govern dependent diagrams. Neon hosting, the six development secret names and delivery-address tariff zone were confirmed by the user on 23 October 2026; other selected options remain Proposed pending named approver/date and a reviewed PR.

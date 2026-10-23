@@ -16,12 +16,12 @@ The [+5 bonus source](../requirements/sources/ead-group-assignment.pdf#page=3) e
 
 ## Bonus gates
 
-| Milestone | Required evidence | Status |
-|---|---|---|
-| Manifests reviewed | Versioned files, owner, tested cluster/tool versions | Starter rendered with `kubectl kustomize`; review and cluster/tool evidence pending |
-| One-node clean deployment | Successful migrations/readiness, PVC persistence and restart | Planned; migrations and dependency-aware readiness are not implemented |
-| Mandatory flows on cluster | Four workflow tests, web/mobile networking, private data checks | Planned |
-| Optional scaling | Approved fanout/backplane, multi-instance clients and failure tests | Deferred |
-| Upgrade/availability claims | Measured rolling-update and fault evidence before any guarantee | Deferred |
+| Milestone                   | Required evidence                                                   | Status                                                                              |
+| --------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Manifests reviewed          | Versioned files, owner, tested cluster/tool versions                | Starter rendered with `kubectl kustomize`; review and cluster/tool evidence pending |
+| One-node clean deployment   | Successful migrations/readiness, PVC persistence and restart        | Planned; migrations and dependency-aware readiness are not implemented              |
+| Mandatory flows on cluster  | Four workflow tests, web/mobile networking, private data checks     | Planned                                                                             |
+| Optional scaling            | Approved fanout/backplane, multi-instance clients and failure tests | Deferred                                                                            |
+| Upgrade/availability claims | Measured rolling-update and fault evidence before any guarantee     | Deferred                                                                            |
 
 Use [service catalog](../architecture/service-catalog.md), [environment matrix](environments.md), [security](../security/data-protection.md) and [test plan](../testing/test-strategy.md). Mandatory submission may proceed without this bonus once its own gates pass.
