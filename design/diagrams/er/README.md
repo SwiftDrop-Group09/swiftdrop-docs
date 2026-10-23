@@ -441,6 +441,7 @@ erDiagram
 ```
 
 ### Key Responsibilities
+
 - **Inbox Pattern (`inbox_messages`):** Ensures idempotent consumption of notification domain events emitted by Delivery via RabbitMQ.
 - **Dispatch Jobs (`notification_jobs`):** Manages asynchronous customer notifications (e.g., booking confirmation, courier arrival) across Email and SMS channels.
 - **Reliability (`provider_attempts`):** Logs delivery status and backoff attempts if third-party notification providers fail.
@@ -471,13 +472,11 @@ flowchart LR
 - [Service Catalog](../../../architecture/service-catalog.md)
 - [Architecture Diagram](../architecture/architecture.md)
 
-
 ## Baseline constraints and omitted physical details
 
-These ER diagrams describe the wider proposed logical design. The Delivery Phase 1 migration implements delivery_zones, pricing_tiers, quotes, parcels, price_snapshots, booking_history (including nullable delivery_note), idempotency_keys and outbox_messages; courier/assignment/proof entities remain proposed. The parcels.notes field is later scope, not a Phase 1 column. The project now uses four service-owned Neon PostgreSQL databases; there is no shared local database container or host database port. Cross-domain IDs are references, **not foreign keys into another database**. Local credentials are nullable for Google-only accounts; provider+subject is unique and cannot auto-link by email. Unique composite constraints: external_identities(provider,provider_subject); idempotency_keys(principal_id,operation,key); parcels(merchant_id,external_order_id) where nonnull; inbox_jobs(business_id,external_order_id); notification inbox(consumer,event_id); notification jobs(event_id,recipient_id,channel); dispatch jobs(event_id,merchant_id); webhook jobs(event_id,subscription_id,replay_generation).
+These ER diagrams are logical design, not applied migrations. Neon PostgreSQL hosts all four databases with separate users and per-service TLS connection strings. Cross-domain IDs are references, **not foreign keys into another database**. Local credentials are nullable for Google-only accounts; provider+subject is unique and cannot auto-link by email. Unique composite constraints: external_identities(provider,provider_subject); idempotency_keys(principal_id,operation,key); parcels(merchant_id,external_order_id) where nonnull; inbox_jobs(business_id,external_order_id); notification inbox(consumer,event_id); notification jobs(event_id,recipient_id,channel); dispatch jobs(event_id,merchant_id); webhook jobs(event_id,subscription_id,replay_generation).
 
 Delivery additionally owns quotes (owner/fingerprint/expiresAt/consumed parcel), realtime inbox and immutable price snapshots. Quote consumption is atomic with booking; status/version/history/outbox commit together. Merchant owns webhook_jobs and webhook_attempts; Worker owns provider_attempts, not webhook attempts. No Worker-to-Merchant DB access. See [canonical data architecture](../../../architecture/data-architecture.md) and [state matrix](../../../architecture/parcel-state-machine.md) for field/transaction details. Rendering verifies notation, not implemented schema parity.
-
 
 ## Assignment-source clarification
 

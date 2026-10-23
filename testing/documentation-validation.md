@@ -6,7 +6,7 @@ The following commands were executed locally against the revised files. These ar
 
 | Check | Command / tool | Observed result |
 |---|---|---|
-| Markdown integrity | `python scripts/validate-docs.py` | PASS: link validation rerun after assignment alignment; all relative paths/anchors/images resolve across 54 Markdown files; zero reported errors |
+| Markdown integrity | `python scripts/validate-docs.py` | PASS: link validation rerun after milestone/onboarding updates; all relative paths/anchors/images resolve across 55 Markdown files; zero reported errors |
 | Assignment source comparison | Original/copy byte comparison, four-page text extraction and visual review | PASS: unchanged [assignment PDF](../requirements/sources/ead-group-assignment.pdf), page-cited [compliance map](../requirements/assignment-compliance.md); exact +5 bonus labels verified; grading conversion remains open |
 | .NET target documentation | Runtime-reference audit, diagram regeneration and PDF text/preview review | PASS: .NET 10 / ASP.NET Core 10 / net10.0 target is explicit in stack, service, setup/CI and diagram documentation; no application build or package compatibility test is claimed |
 | Route/requirement/test consistency | Same validator | PASS: 57 unique canonical operations; 32 FR + 20 NFR = 52 mapped; 68 unique drafted cases; three required priorities Must |
@@ -37,7 +37,7 @@ After regenerating all 33 diagrams/PDFs, the Delivery ER page was checked for co
 
 - Lecturer grading conversion/scaling: source comparison is now complete in the [assignment compliance map](../requirements/assignment-compliance.md); how the 100-point category labels/+5 bonuses map to the overall 20 remains unclarified.
 - Backend OpenAPI/protobuf/GraphQL implementation parity and all application unit/integration/security/recovery tests: source/build evidence absent; 68 cases are Drafted only.
-- Docker empty-machine startup, applied migrations, private-storage/broker permissions, health and end-to-end smoke: Docker daemon unavailable (`dockerDesktopLinuxEngine` named pipe missing) and real app images/migrations absent. Configuration parsing is not startup evidence.
+- Docker image builds passed on 16 October 2026. Full startup, Identity migration, Neon registration persistence, private-storage/broker permissions, and end-to-end smoke remain pending: the existing `identity_app` login lacks schema DDL permission, and the separate `identity_migrator` login has not yet been provisioned/configured. Image builds are not runtime or database evidence.
 - Flutter Customer/Courier device onboarding, browser SSE reconnect, actual latency/load/coverage reports and final report/demo evidence: pending owning implementations.
 - Named team allocation, individual contribution verification and ADR/diagram/PR approval: pending team records; remaining design decisions stay Proposed. The user confirmed Neon, the six secret names and the delivery-address tariff zone on 23 October 2026, without accepting the full baseline.
 

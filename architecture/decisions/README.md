@@ -9,13 +9,13 @@ Architecture Decision Records (ADRs) capture the context, reasoning, and consequ
 
 ## ADR Index
 
-| ID       | Title                                              | Status    | Date         |
-| -------- | -------------------------------------------------- | --------- | ------------ |
-| ADR-001  | [Adopt YARP as the API Gateway](#adr-001)          | Proposed  | October 2026 |
-| ADR-002  | [Database-per-Service with PostgreSQL](#adr-002)   | Proposed  | October 2026 |
-| ADR-003  | [Transactional Outbox for Event Publishing](#adr-003) | Proposed | October 2026 |
-| ADR-004  | [Google OIDC with Application-Issued JWTs](#adr-004) | Proposed | October 2026 |
-| ADR-005  | [MassTransit over RabbitMQ for Messaging](#adr-005)  | Proposed | October 2026 |
+| ID      | Title                                                 | Status   | Date         |
+| ------- | ----------------------------------------------------- | -------- | ------------ |
+| ADR-001 | [Adopt YARP as the API Gateway](#adr-001)             | Proposed | October 2026 |
+| ADR-002 | [Database-per-Service with PostgreSQL](#adr-002)      | Proposed | October 2026 |
+| ADR-003 | [Transactional Outbox for Event Publishing](#adr-003) | Proposed | October 2026 |
+| ADR-004 | [Google OIDC with Application-Issued JWTs](#adr-004)  | Proposed | October 2026 |
+| ADR-005 | [MassTransit over RabbitMQ for Messaging](#adr-005)   | Proposed | October 2026 |
 
 ---
 
@@ -31,6 +31,7 @@ Architecture Decision Records (ADRs) capture the context, reasoning, and consequ
 SwiftDrop requires a single entry point for all client applications (React SPA, Flutter mobile, merchant systems). The gateway must handle reverse proxy routing, TLS termination, and request forwarding to multiple backend services.
 
 Options considered:
+
 - **YARP (Yet Another Reverse Proxy)** — Microsoft's .NET-native reverse proxy library.
 - **Ocelot** — Popular .NET API gateway framework.
 - **nginx / Envoy** — Dedicated reverse proxy solutions.
@@ -68,8 +69,9 @@ Adopt **YARP** as the API gateway implemented within an **ASP.NET Core 10 / .NET
 SwiftDrop has three capability APIs (Identity, Delivery Operations, Merchant Integration) and a background Worker host (Notification & Webhook consumers), each with distinct domain responsibilities. A decision is needed on whether to share a single database or isolate data per bounded context.
 
 Options considered:
+
 - **Shared database** with open cross-capability queries.
-- **Four private databases** with complete schema/user isolation, hosted in Neon under the user-confirmed deployment choice, plus proposed protected object storage for proof files.
+- **Four private databases** on managed PostgreSQL with complete schema and user isolation, plus dedicated object storage for proof files.
 
 #### Decision
 
@@ -87,7 +89,9 @@ Each bounded context owns a **dedicated private PostgreSQL database** (`swiftdro
 
 - Cross-domain queries require API calls (REST / gRPC), adding minor network latency.
 - Distributed ACID transactions are avoided in favor of eventual consistency via the Transactional Outbox.
-- Four private databases are managed in Neon; the local PostgreSQL container proposal was superseded by the user on 23 October 2026.
+- Four private databases are managed by Neon PostgreSQL, outside local Compose.
+  This managed database choice does not satisfy a literal requirement to containerize
+  PostgreSQL; confirm instructor acceptance or deploy a PostgreSQL workload where required.
 - Proof binary assets (signatures, photos) are offloaded to dedicated object storage rather than bloated into relational database rows.
 
 ---
@@ -104,6 +108,7 @@ Each bounded context owns a **dedicated private PostgreSQL database** (`swiftdro
 The Delivery Operations API must publish domain events (`StatusChanged`) to RabbitMQ after business state changes. Direct publish-after-commit risks message loss if the application crashes between the database commit and the broker publish.
 
 Options considered:
+
 - **Direct publish** after database commit.
 - **Transactional outbox** — events are stored in the database within the same transaction, then relayed to the broker.
 - **Change Data Capture (CDC)** — database log tailing.
@@ -140,6 +145,7 @@ Use a **transactional outbox** pattern where domain events are written to an `ou
 SwiftDrop needs user authentication that supports social login and issues application-specific tokens for API authorization.
 
 Options considered:
+
 - **Google OIDC only** — use Google ID tokens directly for API auth.
 - **Google OIDC + application JWTs** — use Google for identity verification, then issue SwiftDrop-specific JWTs.
 - **Self-hosted identity** (e.g., IdentityServer, Keycloak).
@@ -177,6 +183,7 @@ Use **Google OIDC for identity verification** and have the **Identity API issue 
 SwiftDrop requires asynchronous messaging for domain event distribution (delivery status changes, webhook triggers). The team needs to decide between using the RabbitMQ client library directly or using a messaging abstraction.
 
 Options considered:
+
 - **RabbitMQ.Client** — low-level AMQP client.
 - **MassTransit** — .NET messaging abstraction supporting RabbitMQ, Azure Service Bus, and others.
 - **NServiceBus** — commercial messaging framework.
@@ -208,25 +215,24 @@ Use **MassTransit** as the messaging abstraction over RabbitMQ.
 
 New ADRs should follow the format defined in [ADR Template](adr-template.md).
 
-
 ## Baseline 2.0 decision register
 
 All existing ADR-001 through ADR-005 and DEC-01 through DEC-12 remain **Proposed**. Proposal date: **16 October 2026**. Approver: **unassigned**. Approval date: **pending**. Design/code issue: **pending reviewed contract PR**. An ADR becomes Accepted only with named approver(s), date and evidence link. This branch reconciles proposed contracts and does not manufacture team sign-off.
 
-| Decision | Proposed choice | Alternatives and consequence | Suggested reviewer roles | Dependent contracts |
-|---|---|---|---|---|
-| DEC-01 | Separate official requirements, team choices and bonuses | Source/page comparison complete; lecturer grading conversion and team adoption approval pending | REQ/PM | [Assignment](../../requirements/assignment-overview.md), [source map](../../requirements/assignment-compliance.md), SRS |
-| DEC-02 | React all roles; Flutter Customer and Courier | Courier-only mobile contradicts recorded agreement; both need end-to-end evidence | REQ/UI | [Use cases](../../requirements/use-case-specifications.md), client matrix |
-| DEC-03 | 3 APIs + YARP + Worker; SSE in Delivery | Separate realtime service adds deployment cost; keep one Delivery instance | ARCH | [Service catalog](../service-catalog.md) |
-| DEC-04 | Four isolated service-owned databases; Neon hosting confirmed by user on 23 October 2026 | Earlier local PostgreSQL container topology superseded; role/privilege and assignment-compliance evidence still pending | ARCH/OPS | [Data](../data-architecture.md), canonical infrastructure |
-| DEC-05 | Google SDK ID token exchange on both clients + local login | Code+PKCE would require a different backend contract; SDK handles provider flow | SEC/UI | [Authentication](../../security/authentication.md), REST, UML |
-| DEC-06 | Created after confirmation; canonical 8 states; terminal Failed; proof completes delivery | Pending/Confirmed and automatic redelivery excluded; explicit cancellation/reassignment guards | DEL/REQ/SEC | [State machine](../parcel-state-machine.md) |
-| DEC-07 | Durable async single-order ingestion; 202 and status job; CreateBooking + reconciliation RPC | Sync 201 and bulk are deferred; no distributed DB transaction; merchant must poll job | MER/DEL/API | [gRPC](../../api/grpc-services.md), REST |
-| DEC-08 | SSE for authenticated status; snapshots for public tracking; defer GPS/SignalR | Multi-instance SSE needs separate broadcast design; no live GPS map commitment | ARCH/UI | [Realtime](../../integration/realtime-tracking.md) |
-| DEC-09 | StatusChanged v1 sole side-effect trigger, MassTransit per-type fanout, inbox deduplication | Specialized events and custom topic exchange omitted to prevent duplicate notifications | MSG/DEL | [Event catalog](../../integration/event-catalog.md) |
-| DEC-10 | Merchant owns subscriptions, encrypted secrets and HTTP webhook attempts; Worker sends scoped dispatch command | Moving secret/attempt ownership to Worker is an alternative; selected model exposes no signing key to Worker | MER/MSG/SEC | [Webhooks](../../integration/merchant-webhooks.md) |
-| DEC-11 | Delivery hosts GraphQL; shared handlers; cross-domain queries via APIs only if added later | Separate BFF deferred; no foreign DB access | ARCH/API | [GraphQL](../../api/graphql-api.md) |
-| DEC-12 | No Redis; bounded JWT expiry revocation; private object store adopted | Redis revocation/backplane would add required infrastructure; logout does not immediately invalidate access JWTs | SEC/OPS/ARCH | [Storage](../data-architecture.md), authentication, Compose |
+| Decision | Proposed choice                                                                                                | Alternatives and consequence                                                                                     | Suggested reviewer roles | Dependent contracts                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| DEC-01   | Separate official requirements, team choices and bonuses                                                       | Source/page comparison complete; lecturer grading conversion and team adoption approval pending                  | REQ/PM                   | [Assignment](../../requirements/assignment-overview.md), [source map](../../requirements/assignment-compliance.md), SRS |
+| DEC-02   | React all roles; Flutter Customer and Courier                                                                  | Courier-only mobile contradicts recorded agreement; both need end-to-end evidence                                | REQ/UI                   | [Use cases](../../requirements/use-case-specifications.md), client matrix                                               |
+| DEC-03   | 3 APIs + YARP + Worker; SSE in Delivery                                                                        | Separate realtime service adds deployment cost; keep one Delivery instance                                       | ARCH                     | [Service catalog](../service-catalog.md)                                                                                |
+| DEC-04   | Neon PostgreSQL with four DBs/users and separate migrations                                                    | Managed endpoint simplifies shared development but is external to Compose/Kubernetes                             | ARCH/OPS                 | [Data](../data-architecture.md), [Compose](../../deployment/docker-compose.md)                                          |
+| DEC-05   | Google SDK ID token exchange on both clients + local login                                                     | Code+PKCE would require a different backend contract; SDK handles provider flow                                  | SEC/UI                   | [Authentication](../../security/authentication.md), REST, UML                                                           |
+| DEC-06   | Created after confirmation; canonical 8 states; terminal Failed; proof completes delivery                      | Pending/Confirmed and automatic redelivery excluded; explicit cancellation/reassignment guards                   | DEL/REQ/SEC              | [State machine](../parcel-state-machine.md)                                                                             |
+| DEC-07   | Durable async single-order ingestion; 202 and status job; CreateBooking + reconciliation RPC                   | Sync 201 and bulk are deferred; no distributed DB transaction; merchant must poll job                            | MER/DEL/API              | [gRPC](../../api/grpc-services.md), REST                                                                                |
+| DEC-08   | SSE for authenticated status; snapshots for public tracking; defer GPS/SignalR                                 | Multi-instance SSE needs separate broadcast design; no live GPS map commitment                                   | ARCH/UI                  | [Realtime](../../integration/realtime-tracking.md)                                                                      |
+| DEC-09   | StatusChanged v1 sole side-effect trigger, MassTransit per-type fanout, inbox deduplication                    | Specialized events and custom topic exchange omitted to prevent duplicate notifications                          | MSG/DEL                  | [Event catalog](../../integration/event-catalog.md)                                                                     |
+| DEC-10   | Merchant owns subscriptions, encrypted secrets and HTTP webhook attempts; Worker sends scoped dispatch command | Moving secret/attempt ownership to Worker is an alternative; selected model exposes no signing key to Worker     | MER/MSG/SEC              | [Webhooks](../../integration/merchant-webhooks.md)                                                                      |
+| DEC-11   | Delivery hosts GraphQL; shared handlers; cross-domain queries via APIs only if added later                     | Separate BFF deferred; no foreign DB access                                                                      | ARCH/API                 | [GraphQL](../../api/graphql-api.md)                                                                                     |
+| DEC-12   | No Redis; bounded JWT expiry revocation; private object store adopted                                          | Redis revocation/backplane would add required infrastructure; logout does not immediately invalidate access JWTs | SEC/OPS/ARCH             | [Storage](../data-architecture.md), authentication, Compose                                                             |
 
 The existing ADRs provide context for YARP, isolation, outbox, app JWTs and MassTransit. This register refines their proposed scope where older general wording differs. Review all dependent documents together before acceptance. Implementation contract files in this repository are design fixtures until an owning source repository and matching commit are linked.
 

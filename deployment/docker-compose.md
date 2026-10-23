@@ -1,38 +1,49 @@
-# Shared Development Deployment
+# Docker Compose Development Environment
 
-> Neon and secret names confirmed by the user on 23 October 2026 · Full product deployment evidence remains pending
+> Status: Development Compose defined in `swiftdrop-infra/development` · Runtime acceptance pending
 
-The canonical runnable stack is owned by **swiftdrop-infra**, not this documentation repository: [development README](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/README.md), [Compose](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/compose.yaml), [runner](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/run.sh), and [environment template](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/.env.example). It builds sibling backend/frontend repositories and runs Gateway, Identity, Delivery, Merchant, Notification Worker, web and RabbitMQ. Neon PostgreSQL is external; no local PostgreSQL or database bootstrap container is part of the shared stack. MinIO is deferred until proof storage is implemented.
+The shared developer environment is in the infrastructure repository's
+`development/` folder. It builds and runs separate containers for the
+frontend, Gateway, Identity, Delivery, Merchant, Notification Worker, and
+RabbitMQ. PostgreSQL remains external in Neon. Do not use this documentation
+repository's reference `deployment/compose.yaml` as the developer run command.
 
-The former docs-only `deployment/compose.yaml`, local PostgreSQL initializer, broker bootstrap and object-store bootstrap have been removed because they described an incompatible proposal with extra password names and placeholder application images. Git history retains that superseded reference. The [six-key secret template](.env.example) documents names only; configure actual values privately in ignored `swiftdrop-infra/development/.env`.
-
-## Start and validate
-
-Keep `swiftdrop-infra`, `swiftdrop-backend` and `swiftdrop-frontend` as siblings. Run these commands in the infrastructure repository using its supported shell:
+Keep `swiftdrop-infra`, `swiftdrop-backend`, and `swiftdrop-frontend` as sibling
+repositories, start Docker, then run from `swiftdrop-infra`:
 
 ```sh
 ./development/run.sh up --mode docker --build
-./development/run.sh ps
-curl --fail http://localhost:5000/health
-curl --fail http://localhost:5173/
 ```
 
-The runner initializes an ignored configuration on first use and generates a local RabbitMQ password without overwriting an existing file. Scaffold process liveness can run without Neon credentials; database-dependent features require provisioned service databases, credentials and migrations. Use [the environment matrix](environments.md) for ports and exact configuration ownership. Do not print rendered Compose configuration containing real secrets.
+The script creates ignored local configuration on first use. The web app is
+available at `http://localhost:5173`, the Gateway at `http://localhost:5000`,
+and RabbitMQ's local management UI at `http://localhost:15672`.
 
-For host development use `./development/run.sh up --mode host` with the pinned .NET/Node dependencies from the owning repositories. Both modes forward each service's own database connection string. Host mode does not start RabbitMQ. Docker mode remains the required shared acceptance check.
-
-## Migrations and acceptance
-
-Provision Neon databases/roles before migration; the runner does not create them. Identity's opt-in migration uses `IDENTITY_MIGRATION_CONNECTION_STRING`. Delivery has an explicit one-shot `--migrate` task using `DELIVERY_DATABASE_CONNECTION_STRING`; its privileges must be checked before running it. There is no additional Delivery migration secret. Merchant/Notifications migrations and broker publishers/consumers remain future implementation work. Ordinary API startup never performs automatic schema changes.
-
-Run explicit migrations from the infrastructure repository; normal `up` in either mode performs no DDL:
+Use the same script to rebuild or operate a selected service:
 
 ```sh
-./development/run.sh migrate --mode host identity-service
-./development/run.sh migrate --mode host delivery-service
-# Use --mode docker for the equivalent container one-shot tasks.
+./development/run.sh up --mode docker
+./development/run.sh up --mode docker --build delivery-service
+./development/run.sh logs gateway
+./development/run.sh ps
+./development/run.sh down
 ```
 
-Run each service's implemented migration once and verify database-backed readiness separately from `/health`. Product acceptance still requires quote/confirm, authorization, clients, outbox recovery, notifications, Merchant recovery/webhook signing and private proofs after those features exist. No full-system startup or Neon privilege verification is claimed here. The assignment's literal database-container requirement still needs lecturer/project-lead reconciliation with the user's Neon choice; this does not change that choice or claim lecturer approval.
+Developers may select `./development/run.sh up --mode host` for routine
+iteration with local .NET and Node processes. Docker is nevertheless the
+required shared acceptance check before merging app/container changes: run the
+Docker command with `--build`, verify container startup and Gateway/web health,
+and record the result (or obtain equivalent CI/Docker-enabled teammate
+evidence). A host-mode run cannot validate container networking or images.
 
-Use `./development/run.sh logs <service>` for bounded diagnostics and `./development/run.sh down` to stop the stack while retaining broker data. Backups, restore and clean-machine runtime checks remain acceptance evidence, not documentation validation.
+The four Neon connection-string examples are placeholders; current service
+code does not consume them. RabbitMQ is included, but there is no broker
+adapter yet. MinIO is deferred until proof storage is implemented. `/health`
+is process liveness, not dependency readiness; feature routes and DB
+migrations are not implemented. A successful Compose parse is not evidence
+that images build or the complete application runs.
+
+The choice to use external Neon differs from the assignment's literal
+database-container requirement; confirm lecturer acceptance. See the
+[assignment overview](../requirements/assignment-overview.md) and
+[Kubernetes scope](kubernetes.md).
