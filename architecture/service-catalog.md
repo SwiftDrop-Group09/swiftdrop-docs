@@ -13,7 +13,7 @@ The gateway, three capability APIs and Notification/Webhook Worker target **.NET
 | delivery-service | Quotes, parcels, assignment, status, POD, receipts, reports, GraphQL, SSE, outbox relay | HTTP 8080; gRPC HTTP/2 8081 | No published port | swiftdrop_delivery; private proof bucket |
 | merchant-service | Onboarding, keys, durable orders/reconciliation, subscriptions, signing, webhook HTTP attempts | HTTP 8080 | No published port | swiftdrop_merchant |
 | notification-worker | Notification consumer, provider jobs, webhook dispatch commands | HTTP health 8080; no client API | No published port | swiftdrop_notifications |
-| web | React, all five roles and public tracking | HTTP 80 | localhost:5173 | None |
+| web | React, all five roles and public tracking | HTTP 8080 | localhost:5173 | None |
 
 Flutter Customer and Courier call YARP; they are clients, not extra backend services. There is no separate realtime process or port 5004. GraphQL is a Delivery module, not a separate BFF process. YARP routes `/graphql` and authenticated `/api/v1/parcels/{id}/events` to Delivery. Domain services independently validate credentials, roles and ownership; no authorization relies on forwarded user headers.
 
@@ -21,9 +21,9 @@ Flutter Customer and Courier call YARP; they are clients, not extra backend serv
 
 | Process | Container address | Host binding | Purpose |
 |---|---|---|---|
-| postgres | postgres:5432 | 127.0.0.1:5432 | One instance, **four logical databases**, four application logins and separate migrations |
+| Neon PostgreSQL | External endpoint per connection string | No local database binding | Four service-owned databases, separate credentials and migrations |
 | rabbitmq | rabbitmq:5672; management 15672 | 127.0.0.1:15672 management only | AMQP, per-message-type fanout exchanges |
-| object-store | object-store:9000; console 9001 | 127.0.0.1:9001 console only | Private proofs and receipts |
+| private object storage | Deferred in current development stack | Not provisioned | Proposed private proofs and receipts |
 
 All external non-loopback access requires HTTPS via a configured TLS ingress; no staging/production deployment is asserted. Redis and SignalR are deferred. See [environment matrix](../deployment/environments.md) and [Compose](../deployment/docker-compose.md).
 

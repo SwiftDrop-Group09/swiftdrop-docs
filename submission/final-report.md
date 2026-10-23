@@ -8,7 +8,7 @@ SwiftDrop (EAD Group 09, 10 members) proposes a parcel-delivery platform with Re
 
 [SRS](../requirements/srs.md) has 32 FR and 20 NFR, with mandatory receipt download, merchant own-order/status dashboard, basic Admin reports and mobile-friendly public tracking. [Traceability](../requirements/requirements-traceability.md) maps all 52 to interfaces and drafted tests. [Use-case narratives](../requirements/use-case-specifications.md) and [diagram index](../design/diagrams/README.md) cover the four mandatory flows with editable/rendered artifacts.
 
-The proposed [architecture](../architecture/technical-design.md) targets .NET 10 (`net10.0`) with ASP.NET Core 10 for YARP, the three APIs and the Worker's HTTP health host. It uses four isolated logical DBs on one PostgreSQL instance, private object storage and RabbitMQ. Delivery owns GraphQL/SSE and local outbox relay; Merchant owns signing and HTTP webhook attempts; Worker calls scoped APIs rather than foreign SQL. [ADRs](../architecture/decisions/README.md) record all alternatives and tradeoffs as Proposed pending named approvals.
+The proposed [architecture](../architecture/technical-design.md) targets .NET 10 (`net10.0`) with ASP.NET Core 10 for YARP, the three APIs and the Worker's HTTP health host. It uses four isolated logical databases hosted in Neon, private object storage and RabbitMQ. Delivery owns GraphQL/SSE and local outbox relay; Merchant owns signing and HTTP webhook attempts; Worker calls scoped APIs rather than foreign SQL. [ADRs](../architecture/decisions/README.md) record all alternatives and tradeoffs as Proposed pending named approvals.
 
 ## Key guarantees and limits to verify
 

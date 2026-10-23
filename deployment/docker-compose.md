@@ -1,34 +1,38 @@
-# Docker Compose Reference
+# Shared Development Deployment
 
-> Status: Proposed reference configuration · Not a verified full-system deployment
+> Neon and secret names confirmed by the user on 23 October 2026 · Full product deployment evidence remains pending
 
-[compose.yaml](compose.yaml) is a concrete configuration with one PostgreSQL instance, four DBs/users, notification persistence, RabbitMQ, private object storage and optional application profile. It aligns with [service ownership](../architecture/service-catalog.md) and the [environment matrix](environments.md). Redis and a separate realtime hub are absent.
+The canonical runnable stack is owned by **swiftdrop-infra**, not this documentation repository: [development README](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/README.md), [Compose](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/compose.yaml), [runner](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/run.sh), and [environment template](https://github.com/SwiftDrop-Group09/swiftdrop-infra/blob/main/development/.env.example). It builds sibling backend/frontend repositories and runs Gateway, Identity, Delivery, Merchant, Notification Worker, web and RabbitMQ. Neon PostgreSQL is external; no local PostgreSQL or database bootstrap container is part of the shared stack. MinIO is deferred until proof storage is implemented.
 
-## Prepare and validate
+The former docs-only `deployment/compose.yaml`, local PostgreSQL initializer, broker bootstrap and object-store bootstrap have been removed because they described an incompatible proposal with extra password names and placeholder application images. Git history retains that superseded reference. The [six-key secret template](.env.example) documents names only; configure actual values privately in ignored `swiftdrop-infra/development/.env`.
 
-Run from the repository root. Copy [environment template](.env.example) to ignored `deployment/.env`, generate distinct local passwords, and select tested/pinned image versions. The latest object-store tags in the template are unresolved placeholders to pin before release, not a tested compatibility claim. Never use REPLACE_LOCAL_ONLY as a password.
+## Start and validate
 
-```powershell
-Copy-Item deployment/.env.example deployment/.env
-docker compose --env-file deployment/.env -f deployment/compose.yaml config --quiet
-docker compose --env-file deployment/.env -f deployment/compose.yaml up -d
-docker compose --env-file deployment/.env -f deployment/compose.yaml ps -a
+Keep `swiftdrop-infra`, `swiftdrop-backend` and `swiftdrop-frontend` as siblings. Run these commands in the infrastructure repository using its supported shell:
+
+```sh
+./development/run.sh up --mode docker --build
+./development/run.sh ps
+curl --fail http://localhost:5000/health
+curl --fail http://localhost:5173/
 ```
 
-Default profile starts infrastructure/bootstrap only. PostgreSQL init creates the four DBs and owner roles with PUBLIC connection privileges revoked. Existing volumes do not rerun init; missing DBs on an older volume require an explicit reviewed migration/bootstrap, not silent data deletion. Health confirms all four databases exist. Each future API/Worker owns its EF migrations; do not connect Worker to Merchant/Delivery DB.
+The runner initializes an ignored configuration on first use and generates a local RabbitMQ password without overwriting an existing file. Scaffold process liveness can run without Neon credentials; database-dependent features require provisioned service databases, credentials and migrations. Use [the environment matrix](environments.md) for ports and exact configuration ownership. Do not print rendered Compose configuration containing real secrets.
 
-Rabbit bootstrap creates delivery_bus and worker_bus scoped users, with explicit per-type/receive entity permissions; topology declaration is performed by MassTransit consumers at startup. Broker binding permissions must be verified against the pinned MassTransit version in the runtime smoke test. Object bootstrap creates a private bucket and Delivery-only policy/account; app credentials are not root/admin credentials. Verify selected object images contain the configured health tools.
+For host development use `./development/run.sh up --mode host` with the pinned .NET/Node dependencies from the owning repositories. Both modes forward each service's own database connection string. Host mode does not start RabbitMQ. Docker mode remains the required shared acceptance check.
 
-## Application profile prerequisites
+## Migrations and acceptance
 
-The three APIs, YARP gateway and Worker images must be built with the **.NET 10 SDK**, target `net10.0`, and use an **ASP.NET Core 10 runtime** (including the Worker's HTTP health host). Pin tested SDK/runtime image patches or digests in the owning Dockerfiles; the reference Compose image names do not select a framework runtime by themselves.
+Provision Neon databases/roles before migration; the runner does not create them. Identity's opt-in migration uses `IDENTITY_MIGRATION_CONNECTION_STRING`. Delivery has an explicit one-shot `--migrate` task using `DELIVERY_DATABASE_CONNECTION_STRING`; its privileges must be checked before running it. There is no additional Delivery migration secret. Merchant/Notifications migrations and broker publishers/consumers remain future implementation work. Ordinary API startup never performs automatic schema changes.
 
-This documentation repository has **no backend/frontend implementation or Dockerfiles**. `design-unbuilt` image names are deliberate placeholders. Before using `--profile application`, provide real images, their build/source commit links, a migration job per DB, supported `/app/healthcheck` executable, actual YARP route config, signing/encryption keys, workload JWT credentials and trusted Google client IDs. Mount secrets as files; do not bake keys into images. The environment names in this reference are the proposed configuration contract and must be mapped by the actual code. Web runtime base-URL injection also needs implementation support.
+Run explicit migrations from the infrastructure repository; normal `up` in either mode performs no DDL:
 
-YARP routes only catalogued public prefixes to the correct API, `/graphql` and SSE to Delivery, and JWKS to Identity. Block `/internal/*`. Non-loopback clients require configured TLS ingress; domain services still validate JWTs. SSE buffering/timeouts must support heartbeats. Merchant's egress network must be constrained with outbound DNS/IP controls; a Compose network alone does not implement SSRF policy.
+```sh
+./development/run.sh migrate --mode host identity-service
+./development/run.sh migrate --mode host delivery-service
+# Use --mode docker for the equivalent container one-shot tasks.
+```
 
-After providing those prerequisites, run `docker compose --env-file deployment/.env -f deployment/compose.yaml --profile application up -d --build`. Until actual build contexts/images exist, this is an implementation acceptance command, not a working application claim. Smoke test all four DB migrations/readiness, quote-confirm, Flutter Customer/Courier, outbox outage recovery, notification, Merchant job reconciliation and webhook signing. Record logs with secrets redacted and source commit.
+Run each service's implemented migration once and verify database-backed readiness separately from `/health`. Product acceptance still requires quote/confirm, authorization, clients, outbox recovery, notifications, Merchant recovery/webhook signing and private proofs after those features exist. No full-system startup or Neon privilege verification is claimed here. The assignment's literal database-container requirement still needs lecturer/project-lead reconciliation with the user's Neon choice; this does not change that choice or claim lecturer approval.
 
-## Operations
-
-Use `logs --tail 100 <service>` for safe troubleshooting; avoid dumping rendered configuration because it contains local secrets. `down` stops the reference without deleting volumes. Volume destruction requires a separately intentional reset. Backup/restore and clean-empty-machine startup remain pending runtime evidence. [Validation results](../testing/documentation-validation.md) distinguish Compose syntax validation from daemon startup.
+Use `./development/run.sh logs <service>` for bounded diagnostics and `./development/run.sh down` to stop the stack while retaining broker data. Backups, restore and clean-machine runtime checks remain acceptance evidence, not documentation validation.

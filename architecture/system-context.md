@@ -83,7 +83,7 @@ flowchart TB
 | Merchant Integration API      | Merchant onboarding, API keys, order ingestion, webhooks, dashboard       |
 | Background Worker             | Notifications, provider jobs and Merchant webhook-dispatch commands                          |
 | RabbitMQ                      | Asynchronous message broker for domain events                             |
-| PostgreSQL Logical Databases (×4)     | Isolated data stores for Identity, Delivery, Merchant and Notifications domains on one instance         |
+| PostgreSQL Logical Databases (×4)     | Isolated data stores for Identity, Delivery, Merchant and Notifications domains hosted in Neon         |
 
 ### 4.2 What Is Outside
 

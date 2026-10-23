@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 local_lib = ROOT / '.validation-tools/python'
 if local_lib.exists():
     sys.path.insert(0, str(local_lib))
-import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 errors = []
@@ -109,17 +108,23 @@ gql_map = ['CREATED','ASSIGNED','PICKED_UP','IN_TRANSIT','OUT_FOR_DELIVERY','DEL
 for domain, enum in zip(canonical,gql_map):
     check(f'| {domain} | {enum} |' in state and enum in gql, f'State enum mapping drift {domain}')
 
-compose = yaml.safe_load((ROOT/'deployment/compose.yaml').read_text(encoding='utf-8'))
-services = compose['services']
-check('postgres' in services and not any(s.startswith('postgres-') for s in services), 'Database runtime topology drift')
-for service, db in [('identity-service','identity'),('delivery-service','delivery'),('merchant-service','merchant'),('notification-worker','notifications')]:
-    env = services[service]['environment']
-    check(f'Database=swiftdrop_{db};Username={db}_app;' in env['ConnectionStrings__Database'], f'Wrong DB owner {service}')
-    check('healthcheck' in services[service], f'No readiness check {service}')
-check('merchant' not in services['notification-worker']['environment']['ConnectionStrings__Database'], 'Worker foreign DB access')
-check(not any('redis' in k for k in services), 'Unexpected Redis dependency')
-sql = (ROOT/'deployment/postgres/init-databases.sh').read_text(encoding='utf-8')
-check(sql.count('CREATE DATABASE swiftdrop_') == 4, 'Bootstrap must create four logical DBs')
+expected_secrets = {
+    'RABBITMQ_DEFAULT_PASS', 'IDENTITY_DATABASE_CONNECTION_STRING',
+    'DELIVERY_DATABASE_CONNECTION_STRING', 'MERCHANT_DATABASE_CONNECTION_STRING',
+    'NOTIFICATIONS_DATABASE_CONNECTION_STRING', 'IDENTITY_MIGRATION_CONNECTION_STRING',
+}
+template = (ROOT/'deployment/.env.example').read_text(encoding='utf-8')
+secret_entries = [line.split('=', 1) for line in template.splitlines() if line and not line.startswith('#')]
+check({key for key, value in secret_entries} == expected_secrets and len(secret_entries) == 6,
+      'Development secret-name contract must contain exactly the six user-confirmed keys')
+check(all(not value for key, value in secret_entries), 'Documentation template must not contain secret values')
+environment = (ROOT/'deployment/environments.md').read_text(encoding='utf-8')
+check(all(f'| {key} |' in environment for key in expected_secrets), 'Secret ownership matrix drift')
+deployment = (ROOT/'deployment/docker-compose.md').read_text(encoding='utf-8')
+check('swiftdrop-infra/blob/main/development/compose.yaml' in deployment, 'Canonical infra Compose link missing')
+check(not (ROOT/'deployment/compose.yaml').exists(), 'Superseded docs-only Compose must not compete with canonical infra')
+check(not (ROOT/'deployment/postgres/init-databases.sh').exists(), 'Superseded local database bootstrap remains')
+stats['documented_development_secret_names'] = len(secret_entries)
 
 with tempfile.TemporaryDirectory(prefix='swiftdrop-proto-') as temp:
     result = subprocess.run([sys.executable,'-m','grpc_tools.protoc','-I',str(ROOT/'api/contracts'),f'--descriptor_set_out={temp}/delivery.pb',str(ROOT/'api/contracts/delivery.proto')],text=True,capture_output=True,env={**__import__('os').environ,'PYTHONPATH':str(local_lib) if local_lib.exists() else __import__('os').environ.get('PYTHONPATH','')})

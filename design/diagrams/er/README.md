@@ -91,14 +91,15 @@ erDiagram
         uuid customer_id
         uuid merchant_id
         varchar external_order_id
+        varchar tracking_number UK
         bigint version
         varchar status
         varchar size_category
         decimal weight_kg
-        varchar pickup_address
-        varchar pickup_contact
-        varchar dropoff_address
-        varchar dropoff_contact
+        text pickup_address
+        text pickup_contact "nullable"
+        text dropoff_address
+        text dropoff_contact
         uuid zone_id FK
         varchar notes
         timestamp created_at
@@ -132,7 +133,8 @@ erDiagram
     price_snapshots {
         uuid id PK
         uuid parcel_id FK
-        uuid zone_id
+        uuid pricing_tier_id FK
+        uuid zone_id FK
         decimal base_fee
         decimal weight_fee
         varchar pricing_version
@@ -161,6 +163,7 @@ erDiagram
         jsonb stored_response
         uuid parcel_id FK
         timestamp created_at
+        timestamp expires_at
     }
 
     outbox_messages {
@@ -195,6 +198,8 @@ erDiagram
         varchar size_category
         decimal base_rate
         decimal per_kg_rate
+        varchar pricing_version
+        varchar currency
         boolean is_active
     }
 
@@ -203,8 +208,11 @@ erDiagram
         uuid owner_id
         varchar request_fingerprint
         jsonb delivery_input
+        uuid pricing_tier_id FK
         varchar pricing_version
+        varchar currency
         decimal total
+        timestamp created_at
         timestamp expires_at
         uuid consumed_by_parcel FK
     }
@@ -218,7 +226,10 @@ erDiagram
     parcels ||--o{ idempotency_keys : "deduplicated by"
     parcels ||--o{ proof_metadata : "proven by"
     quotes o|--o| parcels : "consumed at confirmation"
-    delivery_zones ||--o{ parcels : "located in"
+    delivery_zones ||--o{ parcels : "delivery tariff zone"
+    delivery_zones ||--o{ price_snapshots : "retained zone"
+    pricing_tiers ||--o{ price_snapshots : "retained tier version and currency"
+    pricing_tiers ||--o{ quotes : "quoted tier version and currency"
     delivery_zones ||--o{ pricing_tiers : "priced by"
 ```
 
@@ -228,7 +239,7 @@ erDiagram
 - Each **parcel** has exactly one **price snapshot** captured at booking time.
 - **Assignments** track the courier lifecycle for a parcel (assigned → picked up → delivered).
 - **Booking history** records every status transition for audit purposes.
-- **Outbox messages** are independent of parcels — they relay domain events to RabbitMQ.
+- **Outbox messages** retain parcel/version provenance inside their immutable event payload; there is no parcel SQL FK. Relay/publisher acknowledgement remains later implementation work.
 - **Delivery zones** and **pricing tiers** are admin-managed configuration data.
 
 ### Parcel Status Lifecycle
@@ -463,11 +474,19 @@ flowchart LR
 
 ## Baseline constraints and omitted physical details
 
-These ER diagrams are logical design, not applied migrations. One PostgreSQL instance/5432 hosts all four databases with separate users. Cross-domain IDs are references, **not foreign keys into another database**. Local credentials are nullable for Google-only accounts; provider+subject is unique and cannot auto-link by email. Unique composite constraints: external_identities(provider,provider_subject); idempotency_keys(principal_id,operation,key); parcels(merchant_id,external_order_id) where nonnull; inbox_jobs(business_id,external_order_id); notification inbox(consumer,event_id); notification jobs(event_id,recipient_id,channel); dispatch jobs(event_id,merchant_id); webhook jobs(event_id,subscription_id,replay_generation).
+These ER diagrams describe the wider proposed logical design. The Delivery Phase 1 migration implements delivery_zones, pricing_tiers, quotes, parcels, price_snapshots, booking_history (including nullable delivery_note), idempotency_keys and outbox_messages; courier/assignment/proof entities remain proposed. The parcels.notes field is later scope, not a Phase 1 column. The project now uses four service-owned Neon PostgreSQL databases; there is no shared local database container or host database port. Cross-domain IDs are references, **not foreign keys into another database**. Local credentials are nullable for Google-only accounts; provider+subject is unique and cannot auto-link by email. Unique composite constraints: external_identities(provider,provider_subject); idempotency_keys(principal_id,operation,key); parcels(merchant_id,external_order_id) where nonnull; inbox_jobs(business_id,external_order_id); notification inbox(consumer,event_id); notification jobs(event_id,recipient_id,channel); dispatch jobs(event_id,merchant_id); webhook jobs(event_id,subscription_id,replay_generation).
 
 Delivery additionally owns quotes (owner/fingerprint/expiresAt/consumed parcel), realtime inbox and immutable price snapshots. Quote consumption is atomic with booking; status/version/history/outbox commit together. Merchant owns webhook_jobs and webhook_attempts; Worker owns provider_attempts, not webhook attempts. No Worker-to-Merchant DB access. See [canonical data architecture](../../../architecture/data-architecture.md) and [state matrix](../../../architecture/parcel-state-machine.md) for field/transaction details. Rendering verifies notation, not implemented schema parity.
 
 
 ## Assignment-source clarification
 
-[Assignment page 2](../../../requirements/sources/ead-group-assignment.pdf#page=2) explicitly requires couriers in the ER model and daily assigned deliveries. Delivery therefore owns the couriers operational profile, zone memberships and service-date assignment fields above; Identity owns the corresponding user/role. A cross-domain user ID is not a cross-database FK. Private delivery notes and final recipient/proof metadata satisfy the note/proof requirement; the strict final photo/signature rule remains a team proposal. Actual EF migrations and named design review are still pending.
+[Assignment page 2](../../../requirements/sources/ead-group-assignment.pdf#page=2) explicitly requires couriers in the ER model and daily assigned deliveries. Delivery therefore owns the couriers operational profile, zone memberships and service-date assignment fields above; Identity owns the corresponding user/role. A cross-domain user ID is not a cross-database FK. Private delivery notes and final recipient/proof metadata satisfy the note/proof requirement; the strict final photo/signature rule remains a team proposal. Delivery booking persistence has a Phase 1 migration; the courier/assignment/proof design and named design review remain pending.
+
+## Booking physical mapping and retained responses
+
+`parcels.tracking_number` is unique. Tariffs are unique by zone/size/pricingVersion, with retained version/currency references from quotes and snapshots. A snapshot's composite foreign keys match both the parcel delivery zone and tariff ID/zone/version/currency; each committed parcel has exactly one immutable snapshot. Quote consumption has a unique nullable parcel reference and is atomic with the owner-matched booking.
+
+The tariff zone is `deliveryAddress.zoneId` (user decision, 23 October 2026); retain `pickupAddress.zoneId` independently and validate both zones. `quotes.delivery_input` contains the complete validated QuoteInput JSON. Parcel pickup/dropoff address text contains structured JSON retaining street, city, postalCode and zoneId; dropoff contact text retains recipient name/phoneNumber. Pickup contact is nullable because QuoteInput supplies no sender contact. No client contract field is added.
+
+The replay JSONB envelope is `{statusCode, body, location}`; body is a string preserving the exact response serialization. `idempotency_keys.expires_at` is created_at plus 720 UTC hours, with a retained tombstone after replay expiry. Identical committed responses are replayed before validating quote expiry or consumption. Money columns use numeric(18,2); weight uses numeric without an invented precision cap. See the [storage rules](../../../architecture/data-architecture.md#customer-booking-storage-and-tariff-zone) for Phase 1 boundaries and later-handler responsibilities.

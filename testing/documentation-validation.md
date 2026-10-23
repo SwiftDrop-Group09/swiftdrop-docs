@@ -13,7 +13,7 @@ The following commands were executed locally against the revised files. These ar
 | JSON/event schema | Draft 2020-12 validator plus format checks | PASS: JSON parses; event example validates; injected private address field rejected; canonical state mapping matches |
 | GraphQL design | `node scripts/validate-graphql.mjs` | PASS: SDL and safe public query valid; attempted private fields rejected by schema; runtime resolvers not tested |
 | Protobuf design | `grpc_tools.protoc` via validator | PASS: actual delivery.proto compiles to descriptor; source-server implementation parity unverified |
-| Compose syntax | `docker compose --env-file deployment/.env.example -f deployment/compose.yaml --profile application config --quiet` | PASS: full reference configuration parses using placeholder values; no containers started |
+| Historical Compose syntax (16 October) | Former docs-only Compose with placeholders | Historical PASS only; superseded on 23 October by the canonical Neon infrastructure workflow, not evidence for the current stack |
 | Diagram renders | `node scripts/render-diagrams.mjs` | PASS: 33 diagrams, including seven standalone sequences and six formal PlantUML activities; embedded ER/context/use-case/state diagrams render |
 | Source/export parity | SHA-256 of normalized diagram sources | PASS: manifest hashes match each source block/file and all indexed SVGs exist |
 | PDF integrity | `python scripts/review-pdfs.py` | PASS: one-page architecture PDF and 33-page design diagram packet; each formal activity title appears on its corresponding page |
@@ -39,6 +39,20 @@ After regenerating all 33 diagrams/PDFs, the Delivery ER page was checked for co
 - Backend OpenAPI/protobuf/GraphQL implementation parity and all application unit/integration/security/recovery tests: source/build evidence absent; 68 cases are Drafted only.
 - Docker empty-machine startup, applied migrations, private-storage/broker permissions, health and end-to-end smoke: Docker daemon unavailable (`dockerDesktopLinuxEngine` named pipe missing) and real app images/migrations absent. Configuration parsing is not startup evidence.
 - Flutter Customer/Courier device onboarding, browser SSE reconnect, actual latency/load/coverage reports and final report/demo evidence: pending owning implementations.
-- Named team allocation, individual contribution verification and ADR/diagram/PR approval: pending team records; all design decisions remain Proposed.
+- Named team allocation, individual contribution verification and ADR/diagram/PR approval: pending team records; remaining design decisions stay Proposed. The user confirmed Neon, the six secret names and the delivery-address tariff zone on 23 October 2026, without accepting the full baseline.
 
 Outstanding verification, approvals and submission tasks are consolidated in the [remaining-work checklist](../documentation-fix-plan.md); no unexecuted check above is recorded as passing.
+
+## Booking and Neon reconciliation — 23 October 2026
+
+The Delivery ER now includes tracking, retained tariff/version/currency references, full quote input and replay expiry/envelope mapping. Customer sequence/activity and UC-01 use foreign-resource 404, missing-credential 401, wrong-role 403, invalid-input 400 and zone-rejection 422, with committed replay before quote expiry/consumption checks. The user-selected tariff zone is the delivery address zone; pickup eligibility is validated independently. The local database/bootstrap deployment proposal has been replaced with canonical infrastructure links and exactly six blank secret-name entries. No secret values or shared database migrations are part of these documentation changes.
+
+| Check | Observed result |
+|---|---|
+| `node scripts/render-diagrams.mjs` | PASS: 33 source diagrams rendered, manifest and architecture/design PDFs regenerated; retained changed booking/Delivery ER/Neon exports |
+| `python scripts/validate-docs.py` | PASS: 54 Markdown files, 484 local links/images, 57 REST operations, 52 requirements, 68 drafted cases, six secret names, protobuf compilation and 33 source/export hashes; no errors |
+| `node scripts/validate-graphql.mjs` | PASS: SDL/public query valid and private-field query rejected; no runtime resolver test |
+| `python scripts/review-pdfs.py` | PASS: one-page architecture and 33-page packet integrity/title checks; preview review remains separate from team sign-off |
+| `git diff --check` | PASS: no whitespace errors |
+
+Runtime Neon role/privilege checks, Docker startup and the wider proposed product flows remain separate implementation acceptance work. REST routes, protobuf messages and the StatusChanged wire schema are unchanged.

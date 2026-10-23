@@ -69,7 +69,7 @@ SwiftDrop has three capability APIs (Identity, Delivery Operations, Merchant Int
 
 Options considered:
 - **Shared database** with open cross-capability queries.
-- **Four private databases** on a single PostgreSQL server with complete schema and user isolation, plus dedicated object storage for proof files.
+- **Four private databases** with complete schema/user isolation, hosted in Neon under the user-confirmed deployment choice, plus proposed protected object storage for proof files.
 
 #### Decision
 
@@ -87,7 +87,7 @@ Each bounded context owns a **dedicated private PostgreSQL database** (`swiftdro
 
 - Cross-domain queries require API calls (REST / gRPC), adding minor network latency.
 - Distributed ACID transactions are avoided in favor of eventual consistency via the Transactional Outbox.
-- Four private databases are managed within the PostgreSQL server container.
+- Four private databases are managed in Neon; the local PostgreSQL container proposal was superseded by the user on 23 October 2026.
 - Proof binary assets (signatures, photos) are offloaded to dedicated object storage rather than bloated into relational database rows.
 
 ---
@@ -218,7 +218,7 @@ All existing ADR-001 through ADR-005 and DEC-01 through DEC-12 remain **Proposed
 | DEC-01 | Separate official requirements, team choices and bonuses | Source/page comparison complete; lecturer grading conversion and team adoption approval pending | REQ/PM | [Assignment](../../requirements/assignment-overview.md), [source map](../../requirements/assignment-compliance.md), SRS |
 | DEC-02 | React all roles; Flutter Customer and Courier | Courier-only mobile contradicts recorded agreement; both need end-to-end evidence | REQ/UI | [Use cases](../../requirements/use-case-specifications.md), client matrix |
 | DEC-03 | 3 APIs + YARP + Worker; SSE in Delivery | Separate realtime service adds deployment cost; keep one Delivery instance | ARCH | [Service catalog](../service-catalog.md) |
-| DEC-04 | One PostgreSQL instance, four DBs/users on 5432 | Four containers are valid but not selected; shared instance has shared failure domain | ARCH/OPS | [Data](../data-architecture.md), Compose |
+| DEC-04 | Four isolated service-owned databases; Neon hosting confirmed by user on 23 October 2026 | Earlier local PostgreSQL container topology superseded; role/privilege and assignment-compliance evidence still pending | ARCH/OPS | [Data](../data-architecture.md), canonical infrastructure |
 | DEC-05 | Google SDK ID token exchange on both clients + local login | Code+PKCE would require a different backend contract; SDK handles provider flow | SEC/UI | [Authentication](../../security/authentication.md), REST, UML |
 | DEC-06 | Created after confirmation; canonical 8 states; terminal Failed; proof completes delivery | Pending/Confirmed and automatic redelivery excluded; explicit cancellation/reassignment guards | DEL/REQ/SEC | [State machine](../parcel-state-machine.md) |
 | DEC-07 | Durable async single-order ingestion; 202 and status job; CreateBooking + reconciliation RPC | Sync 201 and bulk are deferred; no distributed DB transaction; merchant must poll job | MER/DEL/API | [gRPC](../../api/grpc-services.md), REST |
@@ -229,3 +229,7 @@ All existing ADR-001 through ADR-005 and DEC-01 through DEC-12 remain **Proposed
 | DEC-12 | No Redis; bounded JWT expiry revocation; private object store adopted | Redis revocation/backplane would add required infrastructure; logout does not immediately invalidate access JWTs | SEC/OPS/ARCH | [Storage](../data-architecture.md), authentication, Compose |
 
 The existing ADRs provide context for YARP, isolation, outbox, app JWTs and MassTransit. This register refines their proposed scope where older general wording differs. Review all dependent documents together before acceptance. Implementation contract files in this repository are design fixtures until an owning source repository and matching commit are linked.
+
+## User-confirmed implementation choices — 23 October 2026
+
+The user explicitly selected Neon for project databases and the six [secret names](../../deployment/environments.md#secrets), and selected `deliveryAddress.zoneId` for tariff selection. Pickup-zone eligibility is validated separately and no cross-zone surcharge is introduced. These choices reconcile the deployment and booking ambiguity; they do not accept every ADR/DEC, operational price, future adapter or diagram. No reviewed team PR or lecturer approval is implied. ADRs and the remaining DEC design details retain their Proposed status.

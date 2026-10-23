@@ -5,11 +5,15 @@ skinparam shadowing false
 start
 :Enter delivery input;
 |Delivery API|
-:Authenticate Customer; validate QuoteInput;
+:Authenticate Customer; validate input and both zones;
 if (Authorized and valid?) then (yes)
-  :EstimateFee; persist 10-minute owner quote;
+  :Select tariff by deliveryAddress.zoneId, size and version;
+  :Preserve pickup zone independently; no cross-zone surcharge;
+  :Persist full input and 10-minute owner quote;
 else (no)
-  :Return 400/401/403;
+  :Return 401 for missing/invalid credentials,
+  403 for wrong role, 400 for invalid input,
+  422 for unsupported or inactive zone;
   stop
 endif
 |Customer (React or Flutter)|
@@ -21,21 +25,34 @@ else (no)
   stop
 endif
 |Delivery API|
-:Atomic unique key reservation;
-if (Same key, different payload?) then (yes)
-  :409 conflict; rollback;
+:Authenticate Customer and validate confirmation/key;
+if (Authorized and valid?) then (yes)
+else (no)
+  :Return 401 / 403 / 400;
   stop
 endif
-if (Committed identical duplicate?) then (yes)
-  :Return original 201 result;
+:Resolve or atomically reserve principal/operation/key;
+if (Changed fingerprint, expired key or unresolved concurrent request?) then (yes)
+  :409 conflict; no second booking;
   stop
 endif
-if (Quote valid and owned?) then (yes)
+if (Committed identical duplicate within replay window?) then (yes)
+  :Return original 201, exact body and Location,
+  even when quote expired or consumed;
+  stop
+endif
+:Read quote after committed replay check;
+if (Quote exists and belongs to Customer?) then (yes)
+else (no)
+  :404 for missing/foreign quote; rollback reservation;
+  stop
+endif
+if (Quote unexpired, unused and total accepted?) then (yes)
   :One transaction consumes quote and saves Created,
   price snapshot, history, outbox and response;
   :Return 201;
 else (no)
-  :409/403; rollback; request new quote if expired;
+  :409; rollback reservation; requote if expired;
   stop
 endif
 |Delivery outbox relay|

@@ -18,7 +18,7 @@ flowchart LR
     W -->|Scoped recipient context API| D
     M -->|Fresh timestamp HMAC HTTPS| E[Merchant public receiver]
     C[Google SDK on clients] -->|ID token through gateway| I
-    subgraph P[One PostgreSQL instance - four isolated logical databases]
+    subgraph P[Neon PostgreSQL - four isolated logical databases]
         IDB
         DDB
         MDB

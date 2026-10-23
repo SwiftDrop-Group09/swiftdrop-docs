@@ -331,6 +331,6 @@ Status is Draft; no approval or implementation evidence is asserted. The [suppli
 - NFR-08: domain services enforce role **and** resource ownership; a matching recipient phone is never proof of ownership. JWT role changes take effect within the documented 15-minute access-token bound; merchant-key revocation is immediate at Merchant API.
 - NFR-12: webhook retry means six maximum automatic HTTP attempts. Broker retry is a separate policy.
 - NFR-17: the unit coverage denominator and separate branch reporting are defined in [coverage summary](../testing/coverage-summary.md); targets are not results.
-- SSE is the required status transport. GPS/SignalR, Kubernetes and AI are deferred optional scope. Four private logical databases share one proposed PostgreSQL instance and port; no Redis dependency is proposed.
+- SSE is the required status transport. GPS/SignalR, Kubernetes and AI are deferred optional scope. Four private logical databases use user-selected Neon PostgreSQL; no Redis dependency is proposed.
 
 See [use-case narratives](use-case-specifications.md), [REST contracts](../api/rest-api.md), [traceability](requirements-traceability.md) and [test catalog](../testing/test-cases.md) for measurable acceptance criteria and failure paths.

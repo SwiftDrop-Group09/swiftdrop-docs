@@ -1,7 +1,7 @@
 [
   {
     "source": "design/diagrams/architecture/architecture.mmd",
-    "sourceSha256": "fe468e087210f89d23839352544f375ea2880e3f782987e510671f1ba9b21979",
+    "sourceSha256": "1910990a3a405aa088158421a9cfb236ce994cfdd6854a3a44f9110c6ded9f2c",
     "artifact": "design/diagrams/architecture/architecture.svg",
     "result": "PASS",
     "diagramId": "DIA-01",
@@ -70,7 +70,7 @@
   },
   {
     "source": "design/diagrams/sequence/customer-booking.mmd",
-    "sourceSha256": "fe98aa70e1426c7ee1aeac86a07024ac23444fee0aaf70f130a381bcf0d95a9c",
+    "sourceSha256": "e0d1f818487af4d580b3e04a88a01c751f2b48c73a2e96433bf3a57acd05133d",
     "artifact": "design/diagrams/sequence/customer-booking.svg",
     "result": "PASS",
     "diagramId": "SEQ-customer-booking",
@@ -203,7 +203,7 @@
   },
   {
     "source": "design/diagrams/architecture/architecture.md#mermaid-1",
-    "sourceSha256": "fe468e087210f89d23839352544f375ea2880e3f782987e510671f1ba9b21979",
+    "sourceSha256": "1910990a3a405aa088158421a9cfb236ce994cfdd6854a3a44f9110c6ded9f2c",
     "artifact": "design/diagrams/generated/design-diagrams-architecture-architecture-1.svg",
     "result": "PASS",
     "diagramId": "DIA-10",
@@ -243,7 +243,7 @@
   },
   {
     "source": "design/diagrams/er/README.md#mermaid-2",
-    "sourceSha256": "14e1a712107723ecc33a6a33ed2dcba733c8cff3de79ee44c93e33bff250617a",
+    "sourceSha256": "054438a56fdc1e8b4a026907e5115b0e4c6bb45fedde50a1c4bf9acbb1cedfb8",
     "artifact": "design/diagrams/generated/design-diagrams-er-README-2.svg",
     "result": "PASS",
     "diagramId": "DIA-12",
@@ -620,7 +620,7 @@
   },
   {
     "source": "design/diagrams/activity/customer-booking.puml",
-    "sourceSha256": "e858c5e3a6b4b7a40b720c56514d69eb1628f3f18fac39694e275e1780fbdbe4",
+    "sourceSha256": "b3d151f8dca87777c2c6af1a929fb85bd404248269744e701d54c18da07c05da",
     "artifact": "design/diagrams/activity/customer-booking.svg",
     "result": "PASS",
     "diagramId": "ACT-customer-booking",
