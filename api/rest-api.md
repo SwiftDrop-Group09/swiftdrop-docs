@@ -67,6 +67,9 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | DispatchWebhook | POST | /internal/v1/webhook-dispatches | Merchant | Service JWT; worker; webhooks:dispatch | StatusChanged | DispatchResult | 202 |
 | NotificationContext | POST | /internal/v1/notification-context | Delivery | Service JWT; worker; notifications:resolve | EventReference | NotificationContext | 200 |
 | CancelMerchantParcel | PUT | /internal/v1/parcels/{id}/cancel | Delivery | Service JWT; Merchant; parcels:cancel; owning merchant | MerchantCancelInput | Parcel | 200 |
+| GetSignInMethods | GET | /api/v1/auth/methods | Identity | Human JWT; self | None | SignInMethods | 200 |
+| AddPassword | POST | /api/v1/auth/password | Identity | Human JWT; self; fresh linked Google reauthentication; browser CSRF | AddPasswordInput | SignInMethods | 200 |
+| ListBookableZones | GET | /api/v1/quotes/zones | Delivery | Human JWT; Customer | None | BookableZone[] | 200 |
 
 ## Shared request and response contracts
 
@@ -74,6 +77,7 @@ All body fields below are required unless marked optional. Reject unknown author
 
 | Input | Fields / validation |
 |---|---|
+| AddPasswordInput | idToken from fresh linked Google reauthentication, password 12-128 characters; self only, one-time addition when no local password exists; no reset or replacement |
 | RegisterInput | email ≤254, password 12–128 chars, fullName 1–120; server assigns Customer only; duplicate returns generic 409 registration_conflict; do not log password |
 | LoginInput | email, password; generic 401 invalid_credentials for unknown, disabled or wrong password |
 | GoogleInput | idToken from configured web/Android Google SDK; signature/iss/aud/exp/email_verified checked; SDK nonce/CSRF checks per client |
@@ -107,6 +111,8 @@ Quote pricing: `total = baseFee(zone,size,pricingVersion) + perKgFee * max(0, we
 
 | Output | Minimal fields and behavior |
 |---|---|
+| SignInMethods | hasPassword, googleLinked; authenticated self only, private/no-store; never provider subject or credentials |
+| BookableZone[] | Active service zones ordered by name then id; each entry contains only id and name; no boundaries, configuration, pricing or administrative access |
 | Profile | id, email, fullName, phoneNumber, address, roles, isActive; self or Admin only |
 | TokenPair | accessToken, tokenType Bearer, expiresInSeconds 900, user Profile; mobile gets refreshToken, browser gets HttpOnly cookie; never return local/provider credentials |
 | Quote | quoteId, total, currency, pricingVersion, expiresAt, fingerprint |
@@ -171,3 +177,15 @@ All state changes obey the [single transition matrix](../architecture/parcel-sta
 Errors use ProblemDetails: type (stable code URI under example.invalid/problems), title, status, code, correlationId, and optional field errors. Do not return credentials, stack traces or private resource fields. 400 = malformed/field validation; 401 = missing/invalid credential; 403 = valid credential but missing role/scope; 404 = missing or foreign resource to prevent enumeration; 409 = idempotency mismatch, operation in progress, stale version, quote/pricing conflict or invalid state; 422 = capacity/zone domain rejection; 429 = throttled with Retry-After; 503 = dependency/storage unavailable before commit. A committed parcel remains committed during broker outage. Auth endpoints: registration 5/minute/IP, login/Google 10/minute/IP plus account lockout escalation; all limits are proposed and require implementation evidence.
 
 Client IDs, hosts and TLS policy: [environment matrix](../deployment/environments.md). Session/cookie behavior: [authentication](../security/authentication.md). Planned acceptance tests: [catalog](../testing/test-cases.md).
+
+## Implementation alignment reviewed 9 November 2026
+
+The merged Identity profile connection feature adds the self-only sign-in method
+query and one-time local password addition. Browser mutations retain the existing
+CSRF/nonce checks; Google subject must already belong to the authenticated user.
+Password-bearing accounts cannot replace a password through this route.
+
+Customer booking discovers eligible area identifiers through `ListBookableZones`,
+not the Admin-only `ListZones`. This projection does not make administrative
+configuration public. Empty catalogs return an empty array; unavailable storage
+returns 503. Delivery still independently validates both zones when estimating.

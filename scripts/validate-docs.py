@@ -108,15 +108,15 @@ gql_map = ['CREATED','ASSIGNED','PICKED_UP','IN_TRANSIT','OUT_FOR_DELIVERY','DEL
 for domain, enum in zip(canonical,gql_map):
     check(f'| {domain} | {enum} |' in state and enum in gql, f'State enum mapping drift {domain}')
 
-compose = yaml.safe_load((ROOT/'deployment/compose.yaml').read_text(encoding='utf-8'))
-services = compose['services']
-check('postgres' not in services and not any(s.startswith('postgres-') for s in services), 'Neon database must remain external to Compose')
-for service, db in [('identity-service','identity'),('delivery-service','delivery'),('merchant-service','merchant'),('notification-worker','notifications')]:
-    env = services[service]['environment']
-    check(f'${{{db.upper()}_DATABASE_CONNECTION_STRING:' in env['ConnectionStrings__Database'], f'Wrong Neon DB configuration {service}')
-    check('healthcheck' in services[service], f'No readiness check {service}')
-check('merchant' not in services['notification-worker']['environment']['ConnectionStrings__Database'], 'Worker foreign DB access')
-check(not any('redis' in k for k in services), 'Unexpected Redis dependency')
+# Runtime Compose belongs to the infrastructure repository. Validate the local
+# documented contract without requiring a sibling checkout or a deleted copy.
+environments = (ROOT/'deployment/environments.md').read_text(encoding='utf-8')
+for secret in ('RABBITMQ_DEFAULT_PASS', 'IDENTITY_DATABASE_CONNECTION_STRING',
+               'DELIVERY_DATABASE_CONNECTION_STRING', 'MERCHANT_DATABASE_CONNECTION_STRING',
+               'NOTIFICATIONS_DATABASE_CONNECTION_STRING', 'IDENTITY_MIGRATION_CONNECTION_STRING'):
+    check(secret in environments, f'Missing development secret contract {secret}')
+check('swiftdrop-infra/development/run.sh' in environments, 'Missing canonical infrastructure entry point')
+check('Neon' in environments and 'no local DB port' in environments, 'Neon topology contract drift')
 
 with tempfile.TemporaryDirectory(prefix='swiftdrop-proto-') as temp:
     result = subprocess.run([sys.executable,'-m','grpc_tools.protoc','-I',str(ROOT/'api/contracts'),f'--descriptor_set_out={temp}/delivery.pb',str(ROOT/'api/contracts/delivery.proto')],text=True,capture_output=True,env={**__import__('os').environ,'PYTHONPATH':str(local_lib) if local_lib.exists() else __import__('os').environ.get('PYTHONPATH','')})
