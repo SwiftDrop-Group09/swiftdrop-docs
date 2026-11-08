@@ -34,3 +34,18 @@ Delivery atomically commits parcel/history/version/outbox before acknowledging. 
 | Additional scope | GPS/SignalR and bulk orders deferred; Kubernetes and AI independent bonuses                                                  |
 
 Exact hosts, protocols and ports are maintained only in the [service catalog](service-catalog.md) and [environment matrix](../deployment/environments.md). The [state machine](parcel-state-machine.md), [REST](../api/rest-api.md), [event catalog](../integration/event-catalog.md) and [decision register](decisions/README.md) govern dependent diagrams. Neon hosting, the six development secret names and delivery-address tariff zone were confirmed by the user on 23 October 2026; other selected options remain Proposed pending named approver/date and a reviewed PR.
+
+## Web UI implementation policy
+
+The React application uses shared shadcn/ui components for controls, forms, cards,
+alerts, tables and the responsive dashboard shell. Feature layouts compose these
+components with semantic Tailwind theme tokens. Remove competing custom UI
+primitives and feature stylesheet themes while retaining domain validation and
+workflow behavior. Google's SDK owns its inline sign-in control, with only scoped
+host styling for sizing/alignment; do not imitate it with an extra dialog.
+The courier signature canvas remains a functional input surface with shared
+shadcn actions.
+
+All five repositories use `dev` as their default integration branch. Review and
+merge PRs against `dev`, then delete their merged source branches. Historical
+`main` branches and unmerged work are preserved.

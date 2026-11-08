@@ -34,3 +34,13 @@ See [REST](../api/rest-api.md), [authorization](authorization.md), [data model](
 ## Protocol reference
 
 [Google ID-token verification and stable subject identifiers](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token) supports signature/audience/issuer/expiry validation and subject-based identity. The stricter explicit local-account linking policy is SwiftDrop’s proposed security choice.
+
+## Profile connection extension (9 November 2026)
+
+Authenticated users can read `GET /api/v1/auth/methods` for their own password
+and Google connection flags. A Google-only account may add a first password via
+`POST /api/v1/auth/password` with a fresh Google ID token for its already-linked
+subject and a valid new password. Browser requests require the existing CSRF and
+Google nonce checks. This does not implement password reset, replacement, provider
+unlinking or email-based account merging. Local accounts connect Google through
+the existing password reauthentication/link route. See the REST inputs and outputs.

@@ -370,3 +370,10 @@ _Maintained by SwiftDrop Group 09._
 Canonical design sources are [service catalog](architecture/service-catalog.md), [parcel states](architecture/parcel-state-machine.md), [REST](api/rest-api.md), [events](integration/event-catalog.md), [authentication](security/authentication.md) and [environment matrix](deployment/environments.md). Three APIs + YARP + Worker use four private Neon PostgreSQL databases with per-service credentials. GraphQL and SSE live in Delivery; Merchant owns webhook signing/attempts; no cross-service SQL. Redis/GPS/SignalR and bulk ingestion are deferred. React covers all roles/public tracking and Flutter covers Customer **and** Courier. Mandatory receipt, merchant dashboard and Admin reports have explicit interfaces/tests/demo steps.
 
 [Traceability](requirements/requirements-traceability.md) covers **32 FR + 20 NFR = 52** with **68 drafted test cases**, not passing application tests. [Diagram index](design/diagrams/README.md) links sources/exports and four required workflows. [Validation results](testing/documentation-validation.md) record checks actually run; [runtime results](testing/test-results.md) remain unevidenced here. The [canonical infrastructure workflow](deployment/docker-compose.md) builds real sibling source images; database provisioning, remaining feature implementations and full product deployment evidence remain pending. Neon hosting, the six development secret names and the delivery-address tariff zone were confirmed by the user on 23 October 2026; other design approvals remain pending. Named owners/contributions, reviewed PR sign-off and final report submission remain team tasks. External deadline: **15 November 2026**; optional internal freeze: **12 November**.
+
+## Integration branch
+
+All project repositories use `dev` as the default branch. Reviewed PRs target
+`dev`; source branches are removed after merge. Implementation-specific review
+results are in the corresponding source repository; proposed requirements do not
+imply that every feature or external service has been deployed.

@@ -568,5 +568,35 @@
     "request": "MerchantCancelInput",
     "response": "Parcel",
     "success": "200"
+  },
+  {
+    "operationId": "GetSignInMethods",
+    "method": "GET",
+    "path": "/api/v1/auth/methods",
+    "owner": "Identity",
+    "authorization": "Human JWT; self",
+    "request": "None",
+    "response": "SignInMethods",
+    "success": "200"
+  },
+  {
+    "operationId": "AddPassword",
+    "method": "POST",
+    "path": "/api/v1/auth/password",
+    "owner": "Identity",
+    "authorization": "Human JWT; self; fresh linked Google reauthentication; browser CSRF",
+    "request": "AddPasswordInput",
+    "response": "SignInMethods",
+    "success": "200"
+  },
+  {
+    "operationId": "ListBookableZones",
+    "method": "GET",
+    "path": "/api/v1/quotes/zones",
+    "owner": "Delivery",
+    "authorization": "Human JWT; Customer",
+    "request": "None",
+    "response": "BookableZone[]",
+    "success": "200"
   }
 ]
