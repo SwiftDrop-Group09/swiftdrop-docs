@@ -34,9 +34,9 @@
 | FR-A01 | User management | ListUsers, CreateUser, UpdateUser, DeactivateUser | None (no status side effect) | React Admin | SEC/UI | TC-A01 | Pending |
 | FR-A02 | Role assignment | SetRoles | None (no status side effect) | React Admin | SEC/UI | TC-A02 | Pending |
 | FR-A03 | Merchant approval/rejection | ListMerchants, SetMerchantStatus | None (no status side effect) | React Admin | API/UI | TC-A03 | Pending |
-| FR-A04 | Configure delivery zones | ListZones, CreateZone, UpdateZone | None (no status side effect) | React Admin | API/UI | TC-A04 | Pending |
-| FR-A05 | Configure pricing tiers | ListPricing, CreatePricing, UpdatePricing | None (no status side effect) | React Admin | API/UI | TC-A05 | Pending |
-| FR-A06 | View system reports | DeliveryReport | None (no status side effect) | React Admin | API/UI | TC-A06 | Pending |
+| FR-A04 | Configure delivery zones | ListZones, CreateZone, UpdateZone | None (no status side effect) | React Admin | API/UI | TC-A04 | Implemented |
+| FR-A05 | Configure pricing tiers | ListPricing, CreatePricing, UpdatePricing | None (no status side effect) | React Admin | API/UI | TC-A05 | Implemented |
+| FR-A06 | View system reports | DeliveryReport | None (no status side effect) | React Admin | API/UI | TC-A06 | Implemented |
 | FR-A07 | View audit logs | ListAudit | None (no status side effect) | React Admin | SEC/UI | TC-A07 | Pending |
 | NFR-01 | API responses must return within 500 ms at the 95th percentile under normal load. | Cross-cutting acceptance scenario | None / cross-cutting | Cross-cutting / see acceptance scenario | Delivery/Identity | TC-N01 | Pending |
 | NFR-02 | Real-time tracking updates must be delivered to subscribed clients within 2 seconds of a status change. | Cross-cutting acceptance scenario | StatusChanged | Cross-cutting / see acceptance scenario | Delivery/MSG | TC-N02 | Pending |
