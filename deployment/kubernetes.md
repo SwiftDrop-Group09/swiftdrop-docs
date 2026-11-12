@@ -1,12 +1,12 @@
 # Kubernetes Bonus Reference
 
-> Status: Optional +5 bonus · Assignment PDF page 3 verified · Kustomize starter exists in `swiftdrop-infra` · Cluster runtime not tested · OPS/QA owner unassigned
+> Status: Optional +5 bonus · Assignment PDF page 3 verified · Kustomize base + `dev`/`staging`/`prod` overlays in `swiftdrop-infra` · Cluster runtime not tested · OPS/QA owner unassigned
 
 Kubernetes is independent of mandatory acceptance; [Compose](docker-compose.md) remains the local baseline. No managed cluster, production guarantees, many replicas or zero-downtime behavior is claimed. The infrastructure repository now has a Kustomize base for local development. Static manifest rendering is not a successful cluster deployment or acceptance evidence.
 
 ## Minimal demonstrable scope
 
-The current base defines one replica of each gateway/API/Worker/web process, Neon PostgreSQL as an external managed dependency, RabbitMQ and private object storage with persistent volumes, ConfigMaps, Services, Ingress TLS configuration, and bootstrap resources. Secret values are supplied through ignored per-service environment files. Keep **one Delivery replica** until an approved realtime fanout design exists. Migration Jobs are not provided because backend migrations do not exist yet. Images are not pinned to verified digests; resource budgets are initial estimates, and probes currently check process liveness only. Graceful shutdown, retry behavior, network egress policy and cluster runtime validation remain open.
+The current base defines one replica of each gateway/API/Worker/web process, Neon PostgreSQL as an external managed dependency (including `proof_objects` in `swiftdrop_delivery`, replacing in-cluster MinIO), RabbitMQ with a persistent volume, ConfigMaps, Services, `NetworkPolicy` isolation, non-root `securityContext`, and `Identity` `/ready` readiness probing. Overlays in `k8s/overlays/dev` (Minikube, keeps `web`), `k8s/overlays/staging`, and `k8s/overlays/prod` (K3s with `--disable=traefik` + `ingress-nginx`, HTTP-only ingress for testing, `web` removed in favor of Vercel) separate environment configuration. Keep **one Delivery replica** until an approved realtime fanout design exists. Migration Jobs are not provided in the cluster; images in `staging`/`prod` pull from GHCR using immutable `sha-*` tags.
 
 The assignment's Kubernetes bonus describes the full frontend/backend/**database**/broker system and explicitly requires ConfigMaps, Secrets, Services and Ingress. Using external Neon means PostgreSQL is not deployed in the cluster, so this design does **not yet demonstrate the literal full-database bonus scope**. Confirm with the lecturer whether managed Neon is accepted as the database deployment; if not, add a PostgreSQL workload to the cluster while retaining Neon for shared development.
 
