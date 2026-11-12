@@ -37,7 +37,7 @@
 | FR-A04 | Configure delivery zones | ListZones, CreateZone, UpdateZone | None (no status side effect) | React Admin | API/UI | TC-A04 | Pending |
 | FR-A05 | Configure pricing tiers | ListPricing, CreatePricing, UpdatePricing | None (no status side effect) | React Admin | API/UI | TC-A05 | Pending |
 | FR-A06 | View system reports | DeliveryReport | None (no status side effect) | React Admin | API/UI | TC-A06 | Pending |
-| FR-A07 | View audit logs | ListAudit | None (no status side effect) | React Admin | SEC/UI | TC-A07 | Pending |
+| FR-A07 | View audit logs | ListAudit, ListIdentityActivityAudit, ListDeliveryActivityAudit, ListMerchantActivityAudit | None (no status side effect) | React Admin | SEC/UI | TC-A07 | Pending |
 | NFR-01 | API responses must return within 500 ms at the 95th percentile under normal load. | Cross-cutting acceptance scenario | None / cross-cutting | Cross-cutting / see acceptance scenario | Delivery/Identity | TC-N01 | Pending |
 | NFR-02 | Real-time tracking updates must be delivered to subscribed clients within 2 seconds of a status change. | Cross-cutting acceptance scenario | StatusChanged | Cross-cutting / see acceptance scenario | Delivery/MSG | TC-N02 | Pending |
 | NFR-03 | The system must support at least 50 concurrent users for demonstration purposes. | Cross-cutting acceptance scenario | None / cross-cutting | Cross-cutting / see acceptance scenario | QA/OPS | TC-N03 | Pending |
