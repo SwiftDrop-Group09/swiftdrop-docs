@@ -17,7 +17,7 @@ Resolve **(provider, subject)**, never email alone:
 
 ## SwiftDrop tokens and sessions
 
-Use signed RS256 access JWTs with issuer configured per environment, explicit audience, sub, roles, iat/nbf/exp, jti and optional authenticated merchant membership. Lifetime **≤900 seconds**; service clocks allow a small explicit skew (≤30s). Service JWTs have separate audience/scope and ≤5-minute lifetime, issued through controlled workload provisioning, never merchant API keys or caller-supplied role headers. Services validate signature/algorithm/issuer/audience/time independently. Strip untrusted X-User-* headers at gateway; do not replace cryptographic authentication with forwarded claims.
+Use signed RS256 access JWTs with issuer configured per environment, explicit audience, sub, roles (exactly one named human role), iat/nbf/exp, jti and optional authenticated merchant membership. Lifetime **≤900 seconds**; service clocks allow a small explicit skew (≤30s). Service JWTs have separate audience/scope and ≤5-minute lifetime, issued through controlled workload provisioning, never merchant API keys or caller-supplied role headers. Services validate signature/algorithm/issuer/audience/time independently. Strip untrusted X-User-* headers at gateway; do not replace cryptographic authentication with forwarded claims.
 
 Identity exposes `/.well-known/jwks.json` containing public keys only. It is not presented as a full OIDC authorization server and does not invent discovery/code endpoints. Cache trusted JWKS up to 1h with one bounded unknown-kid refresh; rotate retaining old verification keys through token expiry. Fail closed for unknown keys. Google ID tokens are used only for login/link, not as bearer tokens to Delivery.
 

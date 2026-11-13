@@ -28,3 +28,26 @@ Dispatcher/Admin cannot advance courier operational status or upload courier pro
 Merchant→Delivery has bookings:create/read and parcels:cancel with aud=delivery-internal. Worker→Delivery has notifications:resolve for verified event/parcel/version IDs only. Worker→Merchant has webhooks:dispatch with aud=merchant-internal; only authenticated events from its durable inbox may be dispatched. Workload credentials are provisioned/rotated privately; public callers cannot mint them. Merchant never shares DB credentials or signing material with Worker.
 
 Return 401 for missing/invalid credential, 403 for missing role/scope, 404 for foreign/missing resource, 409 for authorized stale version/state/key conflict, without private side effects. Reassignment and status writes race under one DB concurrency guard; the losing operation receives 409 or 404 if ownership was lost. Privilege/deactivation JWT changes take effect within the [documented 15-minute bound](authentication.md); API-key revocation is immediate in Merchant. Tests must cover both bounds, bypass attempts via GraphQL and direct service calls, and foreign proof/receipt access.
+
+## Exactly one human role
+
+Every human account has exactly one role from the closed enum Customer, Courier,
+Merchant, Dispatcher or Admin. Roles are mutually exclusive; navigation and
+permissions do not combine roles. This does not combine human roles with merchant
+API-key scopes or workload identities. Registration defaults to Customer; Admins
+replace the assigned role through an audited operation. Prevent removing the last
+active Admin. Inactive accounts still retain one role.
+
+For v1 compatibility `Profile.roles`, `RolesInput.roles` and JWT `roles` remain
+arrays containing exactly one enum name. Reject empty, duplicate, unknown and
+multi-role sets. Identity and Delivery reject ambiguous human tokens; Merchant
+validates one named role on human JWT authentication. Refresh/re-authentication is
+required for previously issued ambiguous tokens.
+
+Identity migration 005 converts stored assignments to PostgreSQL `user_role` enum
+columns, adds a unique user assignment and a deferred exactly-one constraint.
+Previous assignments are archived in an owner-only table. Existing assignments
+are consolidated by Admin > Dispatcher > Merchant > Courier > Customer; accounts
+without an assignment become Customer. This is a specific migration policy, not
+an ongoing permission hierarchy. No accounts, credentials, parcels or businesses
+are deleted. Apply the forward migration before starting the updated services.

@@ -88,7 +88,7 @@ All body fields below are required unless marked optional. Reject unknown author
 | RefreshInput | refreshToken; token hash stored; rotate atomically; reuse revokes family; browser refresh token in secure HttpOnly cookie instead of JSON; see authentication |
 | ProfileInput | fullName, phoneNumber, address (optional); no roles or ownership fields |
 | AdminUserInput | email, fullName, isActive; CreateUser also requires a generated local password distributed privately; admin cannot read password hashes; self-service password reset is deferred |
-| RolesInput | roles array from Customer/Courier/Merchant/Dispatcher/Admin; audit changes, prevent removing last active Admin |
+| RolesInput | roles array with exactly one enum name: Customer/Courier/Merchant/Dispatcher/Admin; audit changes, prevent removing last active Admin |
 | QuoteInput | pickupAddress, deliveryAddress (street, city, postalCode, zoneId), packageDetails (weightKg >0 ≤30, size Small/Medium/Large); recipient (name, phoneNumber) is included in quote fingerprint |
 | ConfirmInput | quoteId, acceptTotal decimal; owner and full quote fingerprint checked; server reads delivery details from quote |
 | AssignInput | parcelId, courierId, expectedVersion integer ≥1, reassign boolean (default false), reason required if reassign; optional serviceDate YYYY-MM-DD defaults to today in configured business timezone |
@@ -116,7 +116,7 @@ Quote pricing: `total = baseFee(zone,size,pricingVersion) + perKgFee * max(0, we
 |---|---|
 | SignInMethods | hasPassword, googleLinked; authenticated self only, private/no-store; never provider subject or credentials |
 | BookableZone[] | Active service zones ordered by name then id; each entry contains only id and name; no boundaries, configuration, pricing or administrative access |
-| Profile | id, email, fullName, phoneNumber, address, roles, isActive; self or Admin only |
+| Profile | id, email, fullName, phoneNumber, address, roles (exactly one enum name), isActive; self or Admin only |
 | TokenPair | accessToken, tokenType Bearer, expiresInSeconds 900, user Profile; mobile gets refreshToken, browser gets HttpOnly cookie; never return local/provider credentials |
 | Quote | quoteId, total, currency, pricingVersion, expiresAt, fingerprint |
 | Parcel | id, trackingNumber, status, version, priceSnapshot, createdAt; authenticated projection additionally contains authorized recipient/address, assignment and private history; never raw storage URL |
@@ -192,3 +192,7 @@ Customer booking discovers eligible area identifiers through `ListBookableZones`
 not the Admin-only `ListZones`. This projection does not make administrative
 configuration public. Empty catalogs return an empty array; unavailable storage
 returns 503. Delivery still independently validates both zones when estimating.
+
+Admin creation via POST /api/v1/users accepts optional `role` (one named enum
+value; defaults to Customer). Role, account, credential hash and audit are saved
+in one transaction. Public registration cannot select a privileged role.

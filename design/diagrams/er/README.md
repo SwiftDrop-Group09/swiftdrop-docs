@@ -25,13 +25,12 @@ erDiagram
     }
 
     roles {
-        uuid id PK
-        varchar name UK
+        user_role name PK
     }
 
     user_roles {
-        uuid user_id FK
-        uuid role_id FK
+        uuid user_id PK,FK
+        user_role role_name FK
     }
 
     external_identities {
@@ -64,7 +63,7 @@ erDiagram
         timestamp timestamp
     }
 
-    users ||--o{ user_roles : "has"
+    users ||--|| user_roles : "has exactly one"
     roles ||--o{ user_roles : "assigned to"
     users ||--o{ external_identities : "linked via"
     users ||--o{ refresh_sessions : "maintains"
@@ -73,7 +72,7 @@ erDiagram
 
 ### Key Relationships
 
-- A **user** can have multiple **roles** (many-to-many via `user_roles`).
+- A **user** has exactly one enum **role**, enforced by a unique user assignment and a deferred database constraint.
 - A **user** can have multiple **external identities** (e.g., Google, future providers).
 - A **user** can have multiple active **refresh sessions** across devices.
 - All significant actions generate **audit log** entries.
