@@ -222,7 +222,7 @@
   },
   {
     "source": "design/diagrams/er/README.md#mermaid-1",
-    "sourceSha256": "6bda3a00f31f142f82769ea97d29d37d5975f3fcfa9d1f5ed9f6f42f0a1f1054",
+    "sourceSha256": "ccd0c9ffd10dea1b256d0fe9a9f2a8994d6a6659a2ea8685ebdfde56eccf8eb3",
     "artifact": "design/diagrams/generated/design-diagrams-er-README-1.svg",
     "result": "PASS",
     "diagramId": "DIA-11",

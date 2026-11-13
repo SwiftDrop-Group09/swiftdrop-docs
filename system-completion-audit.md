@@ -114,7 +114,7 @@ parcel-list API or exposing Customer-owned reads as an unrestricted shortcut.
    a new general provisioning API is not automatically required.
 
 4. **Automatic webhooks can remain permanently unresolved.** Merchant registers
-   [StubWebhookOrderResolver](../swiftdrop-backend/src/Services/Merchant/SwiftDrop.Merchant.Api/Infrastructure/Webhooks/StubWebhookOrderResolver.cs),
+   [StubWebhookOrderResolver](https://github.com/SwiftDrop-Group09/swiftdrop-backend/blob/d4f2bf44c001f2f8a661a0c8ebd9064b3c5ff0c0/src/Services/Merchant/SwiftDrop.Merchant.Api/Infrastructure/Webhooks/StubWebhookOrderResolver.cs),
    which always returns null. Accepted status events consequently create
    `PendingResolution` jobs. The current dispatch loop claims only `Pending`
    jobs, and no resolution processor is wired. A test webhook is not proof of
@@ -288,3 +288,10 @@ After adding this report, the validator passed again with 56 Markdown files and
 490 local links/images; the remaining catalog/diagram/protobuf checks also pass.
 The report is uncommitted. No implementation fixes or deployment changes were
 made as part of the audit.
+
+## Subsequent role-model change
+
+The audit above describes its recorded baseline. The single-role account model
+now supersedes its multi-role examples: see [authorization](security/authorization.md).
+Removed implementation references are pinned to their historical baseline commit
+so they do not imply that the previous stub still exists after later merges.
