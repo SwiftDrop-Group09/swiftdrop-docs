@@ -70,6 +70,9 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | GetSignInMethods | GET | /api/v1/auth/methods | Identity | Human JWT; self | None | SignInMethods | 200 |
 | AddPassword | POST | /api/v1/auth/password | Identity | Human JWT; self; fresh linked Google reauthentication; browser CSRF | AddPasswordInput | SignInMethods | 200 |
 | ListBookableZones | GET | /api/v1/quotes/zones | Delivery | Human JWT; Customer | None | BookableZone[] | 200 |
+| ListIdentityActivityAudit | GET | /api/v1/audit-logs/activity | Identity | Human JWT; Admin | ActivityAuditQuery | ActivityAuditPage | 200 |
+| ListDeliveryActivityAudit | GET | /api/v1/delivery/audit-logs | Delivery | Human JWT; Admin | ActivityAuditQuery | ActivityAuditPage | 200 |
+| ListMerchantActivityAudit | GET | /api/v1/merchant/audit-logs | Merchant | Human JWT; Admin | ActivityAuditQuery | ActivityAuditPage | 200 |
 
 ## Shared request and response contracts
 

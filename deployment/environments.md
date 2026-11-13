@@ -14,7 +14,8 @@
 | PostgreSQL                | Neon-managed TLS endpoint     | External Neon endpoint                        | Four logical DBs; restricted application and migration logins per service; no local DB port |
 | RabbitMQ AMQP             | Not published                 | rabbitmq:5672                                 | Internal transport; backend adapter not implemented                                         |
 | RabbitMQ console HTTP     | http://127.0.0.1:15672        | rabbitmq:15672                                | Local admin only; generated in ignored infra `development/.env`                             |
-| Object API/console | External private S3-compatible endpoint | Not started in shared Compose | Required for real courier proof completion; not required for process liveness |
+| Object Store              | `proof_objects` in `swiftdrop_delivery` | Neon PostgreSQL (`bytea`)          | Replaced MinIO/S3; stored via `PostgresProofStorage`                                          |
+| Cloud K3s (Staging/Prod)  | `http://api-staging.swiftdrop.example.com` / `http://api.swiftdrop.example.com` | `ingress-nginx` → `gateway:8080` | HTTP-only ingress for testing (no cloud LB; `hostNetwork` DaemonSet); frontend hosted on Vercel |
 
 There are no local database host ports, direct API ports 5001–5004, Identity/Merchant gRPC ports or Redis port in the shared developer topology. Neon is external to Compose; Identity consumes its private connection string for Customer registration and its migration. Delivery and Merchant now consume their own database settings for their implemented persistence slices. Notifications persistence and the broker relay remain deferred. Delivery and Merchant human-token authentication adapters still fail closed until the IAM integration is supplied. The developer entry point is `swiftdrop-infra/development/run.sh`; the reference Compose in this docs repository is not the app-start command.
 

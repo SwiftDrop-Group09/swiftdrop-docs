@@ -598,5 +598,35 @@
     "request": "None",
     "response": "BookableZone[]",
     "success": "200"
+  },
+  {
+    "operationId": "ListIdentityActivityAudit",
+    "method": "GET",
+    "path": "/api/v1/audit-logs/activity",
+    "owner": "Identity",
+    "authorization": "Human JWT; Admin",
+    "request": "ActivityAuditQuery",
+    "response": "ActivityAuditPage",
+    "success": "200"
+  },
+  {
+    "operationId": "ListDeliveryActivityAudit",
+    "method": "GET",
+    "path": "/api/v1/delivery/audit-logs",
+    "owner": "Delivery",
+    "authorization": "Human JWT; Admin",
+    "request": "ActivityAuditQuery",
+    "response": "ActivityAuditPage",
+    "success": "200"
+  },
+  {
+    "operationId": "ListMerchantActivityAudit",
+    "method": "GET",
+    "path": "/api/v1/merchant/audit-logs",
+    "owner": "Merchant",
+    "authorization": "Human JWT; Admin",
+    "request": "ActivityAuditQuery",
+    "response": "ActivityAuditPage",
+    "success": "200"
   }
 ]
