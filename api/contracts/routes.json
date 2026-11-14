@@ -340,6 +340,16 @@
     "success": "200"
   },
   {
+    "operationId": "PricingOverview",
+    "method": "GET",
+    "path": "/api/v1/pricing-tiers/overview",
+    "owner": "Delivery",
+    "authorization": "Human JWT; Admin",
+    "request": "PricingOverviewQuery",
+    "response": "PricingOverviewPage",
+    "success": "200"
+  },
+  {
     "operationId": "ListPricing",
     "method": "GET",
     "path": "/api/v1/pricing-tiers",

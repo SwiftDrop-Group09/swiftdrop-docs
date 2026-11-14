@@ -44,6 +44,7 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | ListZones | GET | /api/v1/zones | Delivery | Human JWT; Admin | ZoneQuery | ZonePage | 200 |
 | CreateZone | POST | /api/v1/zones | Delivery | Human JWT; Admin | ZoneInput | Zone | 201 |
 | UpdateZone | PUT | /api/v1/zones/{id} | Delivery | Human JWT; Admin | ZoneInput | Zone | 200 |
+| PricingOverview | GET | /api/v1/pricing-tiers/overview | Delivery | Human JWT; Admin | PricingOverviewQuery | PricingOverviewPage | 200 |
 | ListPricing | GET | /api/v1/pricing-tiers | Delivery | Human JWT; Admin | PageQuery | PricingPage | 200 |
 | CreatePricing | POST | /api/v1/pricing-tiers | Delivery | Human JWT; Admin | PricingInput | Pricing | 201 |
 | UpdatePricing | PUT | /api/v1/pricing-tiers/{id} | Delivery | Human JWT; Admin | PricingInput | Pricing | 200 |
@@ -104,6 +105,7 @@ All body fields below are required unless marked optional. Reject unknown author
 | ReplayInput | eventId, reason; creates audited new replay job only for own failed event/subscription, original event ID preserved |
 | ZoneQuery | page >=1, pageSize 1-100; search literal substring of name/city/postal code; city/notCity exact case-insensitive; status active/inactive; text bounds 200; stable name/id order; apply before count/pagination |
 | ZoneInput | name, coarse city, servicePostalCodes array, active, expectedVersion on update; no overlapping postal-code ownership |
+| PricingOverviewQuery | page >=1 default 1; pageSize 1-100 default 20; optional nonempty zoneId UUID; zone-level pagination by name/id |
 | PricingInput | zoneId, size, baseFee ≥0, perKgFee ≥0, currency LKR, expectedVersion on update; version immutable once used |
 | PageQuery | page ≥1 default 1, pageSize 1–100 default 20; stable createdAt+id ordering |
 | AssignmentQuery | PageQuery plus optional date YYYY-MM-DD (default today in Operations:TimeZone, proposed Asia/Colombo), includeOverdue boolean default true; server always scopes current assignments to Courier sub |
@@ -204,3 +206,23 @@ not. Reads use a consistent snapshot and retain zone version tokens. Repeated or
 unknown zone-query parameters and invalid enum/pagination values return 400.
 The zone editor uses expectedVersion and retains drafts on conflict; activation
 still requires the existing pricing and service rules.
+
+
+Admin pricing overview: `GET /api/v1/pricing-tiers/overview` accepts `page`
+(default 1, >=1), `pageSize` (default 20, 1-100) and optional nonempty UUID
+`zoneId`. Unknown/repeated parameters and invalid or overflowing pagination
+return 400. `PricingOverviewPage` contains `items`, `totalCount`, `page` and
+`pageSize`; counts and pagination refer to **delivery zones**, ordered by name
+then ID, including zones without pricing. Each item contains `zoneId`,
+`zoneName`, `isZoneActive`, `tierCount` (all saved versions) and `activeTiers`
+(the existing PricingTier DTOs, with persisted concurrency versions). Active
+rates, version counts and zones share a consistent database snapshot. A missing
+size in activeTiers means no active tariff for that size. An inactive zone can
+retain pricing; its availability is shown separately. Expanded version history
+continues to use zone-scoped `GET /api/v1/pricing-tiers` pagination.
+
+The Admin pricing workspace shows one zone per row and Small/Medium/Large rate
+columns. Activating or deactivating a version requires confirmation and its
+persisted expectedVersion. Creating active pricing can replace the previous
+active version for the same zone/size; saved rates and booking snapshots remain
+unchanged. No schema migration is required for the overview read.
