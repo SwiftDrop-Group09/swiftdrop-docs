@@ -315,7 +315,7 @@
     "path": "/api/v1/zones",
     "owner": "Delivery",
     "authorization": "Human JWT; Admin",
-    "request": "PageQuery",
+    "request": "ZoneQuery",
     "response": "ZonePage",
     "success": "200"
   },
@@ -337,6 +337,16 @@
     "authorization": "Human JWT; Admin",
     "request": "ZoneInput",
     "response": "Zone",
+    "success": "200"
+  },
+  {
+    "operationId": "PricingOverview",
+    "method": "GET",
+    "path": "/api/v1/pricing-tiers/overview",
+    "owner": "Delivery",
+    "authorization": "Human JWT; Admin",
+    "request": "PricingOverviewQuery",
+    "response": "PricingOverviewPage",
     "success": "200"
   },
   {
