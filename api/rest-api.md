@@ -41,7 +41,7 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | CourierHistory | GET | /api/v1/couriers/me/history | Delivery | Human JWT; Courier self | PageQuery | ParcelPage | 200 |
 | CourierWorkload | GET | /api/v1/couriers/workload | Delivery | Human JWT; Dispatcher/Admin | PageQuery | WorkloadPage | 200 |
 | ZoneSummary | GET | /api/v1/zones/summary | Delivery | Human JWT; Dispatcher/Admin | DateQuery | ZoneSummary | 200 |
-| ListZones | GET | /api/v1/zones | Delivery | Human JWT; Admin | PageQuery | ZonePage | 200 |
+| ListZones | GET | /api/v1/zones | Delivery | Human JWT; Admin | ZoneQuery | ZonePage | 200 |
 | CreateZone | POST | /api/v1/zones | Delivery | Human JWT; Admin | ZoneInput | Zone | 201 |
 | UpdateZone | PUT | /api/v1/zones/{id} | Delivery | Human JWT; Admin | ZoneInput | Zone | 200 |
 | ListPricing | GET | /api/v1/pricing-tiers | Delivery | Human JWT; Admin | PageQuery | PricingPage | 200 |
@@ -102,6 +102,7 @@ All body fields below are required unless marked optional. Reject unknown author
 | MerchantOrderInput | externalOrderId ≤128, QuoteInput fields, acceptedPriceVersion; server calculates and snapshots tariff matching accepted version; mismatch returns 409 pricing_changed before acceptance |
 | WebhookInput | url HTTPS public destination, events subset delivery.created/assigned/picked_up/in_transit/out_for_delivery/delivered/failed/cancelled; server creates signing secret; no user-provided secret |
 | ReplayInput | eventId, reason; creates audited new replay job only for own failed event/subscription, original event ID preserved |
+| ZoneQuery | page >=1, pageSize 1-100; search literal substring of name/city/postal code; city/notCity exact case-insensitive; status active/inactive; text bounds 200; stable name/id order; apply before count/pagination |
 | ZoneInput | name, coarse city, servicePostalCodes array, active, expectedVersion on update; no overlapping postal-code ownership |
 | PricingInput | zoneId, size, baseFee ≥0, perKgFee ≥0, currency LKR, expectedVersion on update; version immutable once used |
 | PageQuery | page ≥1 default 1, pageSize 1–100 default 20; stable createdAt+id ordering |
@@ -196,3 +197,10 @@ returns 503. Delivery still independently validates both zones when estimating.
 Admin creation via POST /api/v1/users accepts optional `role` (one named enum
 value; defaults to Customer). Role, account, credential hash and audit are saved
 in one transaction. Public registration cannot select a privileged role.
+
+ZonePage additionally returns `cities`: distinct nonblank cities across all
+configured zones. Count and rows use the chosen criteria, while city options do
+not. Reads use a consistent snapshot and retain zone version tokens. Repeated or
+unknown zone-query parameters and invalid enum/pagination values return 400.
+The zone editor uses expectedVersion and retains drafts on conflict; activation
+still requires the existing pricing and service rules.

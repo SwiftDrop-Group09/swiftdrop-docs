@@ -315,7 +315,7 @@
     "path": "/api/v1/zones",
     "owner": "Delivery",
     "authorization": "Human JWT; Admin",
-    "request": "PageQuery",
+    "request": "ZoneQuery",
     "response": "ZonePage",
     "success": "200"
   },
