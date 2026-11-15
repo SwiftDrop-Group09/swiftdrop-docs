@@ -11,15 +11,15 @@
 | FR-C03 | Profile management | GetProfile, UpdateProfile | None (no status side effect) | React Customer + Flutter Customer | SEC/UI | TC-C03 | Pending |
 | FR-C04 | Create parcel booking | CreateParcel | StatusChanged | React Customer + Flutter Customer | DEL/UI | TC-C04 | Pending |
 | FR-C05 | Fee estimation | EstimateFee | None (no status side effect) | React Customer + Flutter Customer | DEL/UI | TC-C05 | Pending |
-| FR-C06 | Real-time parcel tracking | PublicTrack, GetParcel, ParcelEvents | StatusChanged | React Customer + Flutter Customer | DEL/UI | TC-C06 | Pending |
+| FR-C06 | Real-time parcel tracking | PublicTrack, GetParcel, ParcelEvents | StatusChanged | React Customer + Flutter Customer | DEL/UI | TC-C06 | Implemented & Tested |
 | FR-C07 | Delivery history | ListParcels | None (no status side effect) | React Customer + Flutter Customer | DEL/UI | TC-C07 | Pending |
 | FR-C08 | Download receipt | DownloadReceipt | None (no status side effect) | React Customer + Flutter Customer | DEL/UI | TC-C08 | Pending |
 | FR-M01 | Merchant registration | RegisterMerchant | None (no status side effect) | React Merchant / external merchant system | MER/UI | TC-M01 | Pending |
 | FR-M02 | Admin approval workflow | SetMerchantStatus | None (no status side effect) | React Merchant / external merchant system | MER/UI | TC-M02 | Pending |
 | FR-M03 | API key management | CreateApiKey, ListApiKeys, RevokeApiKey | None (no status side effect) | React Merchant / external merchant system | MER/UI | TC-M03 | Pending |
 | FR-M04 | Submit order via API | SubmitMerchantOrder | StatusChanged | React Merchant / external merchant system | MER/UI | TC-M04 | Pending |
-| FR-M05 | Webhook subscription | CreateWebhook, ListWebhooks, DeleteWebhook, ListWebhookAttempts, ReplayWebhook | StatusChanged | React Merchant / external merchant system | MER/UI | TC-M05 | Pending |
-| FR-M06 | Merchant dashboard | MerchantDashboard, ListMerchantOrders | None (no status side effect) | React Merchant / external merchant system | MER/UI | TC-M06 | Pending |
+| FR-M05 | Webhook subscription | CreateWebhook, ListWebhooks, DeleteWebhook, ListWebhookAttempts, ReplayWebhook | StatusChanged | React Merchant / external merchant system | MER/UI | TC-M05 | Implemented & Tested |
+| FR-M06 | Merchant dashboard | MerchantDashboard, ListMerchantOrders | None (no status side effect) | React Merchant / external merchant system | MER/UI | TC-M06 | Implemented & Tested |
 | FR-M07 | Order status tracking | GetMerchantOrder | StatusChanged | React Merchant / external merchant system | MER/UI | TC-M07 | Pending |
 | FR-R01 | View assigned deliveries | CourierAssignments | None (no status side effect) | React Courier + Flutter Courier | DEL/UI | TC-R01 | Pending |
 | FR-R02 | Update parcel status | UpdateDeliveryStatus | StatusChanged | React Courier + Flutter Courier | DEL/UI | TC-R02 | Pending |
@@ -29,7 +29,7 @@
 | FR-D01 | View unassigned parcels | ListParcels | None (no status side effect) | React Dispatcher | DEL/UI | TC-D01 | Pending |
 | FR-D02 | Assign courier to parcel | AssignCourier | StatusChanged | React Dispatcher | DEL/UI | TC-D02 | Pending |
 | FR-D03 | Monitor courier workload | CourierWorkload | None (no status side effect) | React Dispatcher | DEL/UI | TC-D03 | Pending |
-| FR-D04 | Reassign delivery | AssignCourier | StatusChanged | React Dispatcher | DEL/UI | TC-D04 | Pending |
+| FR-D04 | Reassign delivery | AssignCourier | StatusChanged | React Dispatcher | DEL/UI | TC-D04 | Implemented & Tested |
 | FR-D05 | View delivery zone summary | ZoneSummary | None (no status side effect) | React Dispatcher | DEL/UI | TC-D05 | Pending |
 | FR-A01 | User management | ListUsers, CreateUser, UpdateUser, DeactivateUser | None (no status side effect) | React Admin | SEC/UI | TC-A01 | Pending |
 | FR-A02 | Role assignment | SetRoles | None (no status side effect) | React Admin | SEC/UI | TC-A02 | Pending |
