@@ -31,7 +31,7 @@ Phase 1 stores unique tracking numbers, retained tier/version/currency reference
 
 Delivery owns explicit couriers operational profiles and courier_zones memberships; the local couriers.id equals the referenced Identity user ID, without a cross-database foreign key. assignments.courier_id is a local FK to couriers.id, and courier_zones has a unique (courier_id,zone_id) pair. Seed only verified Courier identities for the demo. Store service_date on each assignment and evaluate daily/overdue queries in configured Operations:TimeZone (proposed Asia/Colombo). Active/on-duty/capacity/zone checks run atomically with assignment.
 
-booking_history.delivery_note stores the required private note for PickedUp/InTransit/OutForDelivery; Failed stores its reason, and proof_metadata.recipient_name belongs to the final proof record. Public summaries and broker events must not serialize these fields.
+booking_history.delivery_note stores an optional private note for PickedUp/InTransit/OutForDelivery; Failed stores its reason, and proof_metadata.recipient_name belongs to the final proof record. Public summaries and broker events must not serialize these fields.
 
 ## Proof and receipt storage
 
