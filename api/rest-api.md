@@ -38,7 +38,9 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | UpdateDeliveryStatus | PUT | /api/v1/deliveries/{id}/status | Delivery | Human JWT; currently assigned Courier | StatusInput | Parcel | 200 |
 | CompleteDeliveryWithProof | POST | /api/v1/deliveries/{id}/pod | Delivery | Human JWT; currently assigned Courier | ProofInput | Parcel | 200 |
 | CourierAssignments | GET | /api/v1/couriers/me/assignments | Delivery | Human JWT; Courier self | AssignmentQuery | ParcelPage | 200 |
-| CourierHistory | GET | /api/v1/couriers/me/history | Delivery | Human JWT; Courier self | PageQuery | ParcelPage | 200 |
+| CourierDaySummary | GET | /api/v1/couriers/me/summary | Delivery | Human JWT; Courier self | CourierSummaryQuery | CourierWorkSummary | 200 |
+| CourierHistoryDetail | GET | /api/v1/couriers/me/history/{id} | Delivery | Human JWT; Courier self; retained terminal assignment | None | CourierHistoryDetail | 200 |
+| CourierHistory | GET | /api/v1/couriers/me/history | Delivery | Human JWT; Courier self | CourierHistoryQuery | ParcelPage | 200 |
 | CourierWorkload | GET | /api/v1/couriers/workload | Delivery | Human JWT; Dispatcher/Admin | PageQuery | WorkloadPage | 200 |
 | ZoneSummary | GET | /api/v1/zones/summary | Delivery | Human JWT; Dispatcher/Admin | DateQuery | ZoneSummary | 200 |
 | ListZones | GET | /api/v1/zones | Delivery | Human JWT; Admin | ZoneQuery | ZonePage | 200 |
@@ -57,7 +59,7 @@ All external requests use YARP and `/api/v1`; no legacy aliases are proposed. JS
 | ListApiKeys | GET | /api/v1/merchants/api-keys | Merchant | Human JWT; approved Merchant owner | PageQuery | KeyMetadataPage | 200 |
 | RevokeApiKey | DELETE | /api/v1/merchants/api-keys/{keyId} | Merchant | Human JWT; own approved Merchant | None | Empty | 204 |
 | SubmitMerchantOrder | POST | /api/v1/merchant/orders | Merchant | X-API-Key; approved Merchant; orders:write | MerchantOrderInput | OrderJob | 202 |
-| ListMerchantOrders | GET | /api/v1/merchant/orders | Merchant | Human JWT Merchant owner OR X-API-Key orders:read | PageQuery | OrderJobPage | 200 |
+| ListMerchantOrders | GET | /api/v1/merchant/orders | Merchant | Human JWT Merchant owner OR X-API-Key orders:read | OrderQuery | OrderJobPage | 200 |
 | GetMerchantOrder | GET | /api/v1/merchant/orders/{id} | Merchant | Human JWT Merchant owner OR X-API-Key orders:read | None | OrderJob | 200 |
 | MerchantDashboard | GET | /api/v1/merchants/me/dashboard | Merchant | Human JWT; approved Merchant owner | DateQuery | MerchantDashboard | 200 |
 | CreateWebhook | POST | /api/v1/merchant/webhooks | Merchant | Human JWT owner OR X-API-Key webhooks:manage; approved | WebhookInput | OneTimeWebhook | 201 |
@@ -93,7 +95,7 @@ All body fields below are required unless marked optional. Reject unknown author
 | QuoteInput | pickupAddress, deliveryAddress (street, city, postalCode, zoneId), packageDetails (weightKg >0 ≤30, size Small/Medium/Large); recipient (name, phoneNumber) is included in quote fingerprint |
 | ConfirmInput | quoteId, acceptTotal decimal; owner and full quote fingerprint checked; server reads delivery details from quote |
 | AssignInput | parcelId, courierId, expectedVersion integer ≥1, reassign boolean (default false), reason required if reassign; optional serviceDate YYYY-MM-DD defaults to today in configured business timezone |
-| StatusInput | status PickedUp/InTransit/OutForDelivery/Failed, expectedVersion; nonblank private notes 1–500 required for PickedUp/InTransit/OutForDelivery; failureReason required for Failed, where additional notes are optional |
+| StatusInput | status PickedUp/InTransit/OutForDelivery/Failed, expectedVersion; private notes optional for all stages, maximum 500 characters, whitespace normalized to null; failureReason required for Failed |
 | ProofInput | multipart photo or signature (at least one, JPEG/PNG ≤5 MiB each), recipientName ≤120, expectedVersion; only OutForDelivery may complete; Idempotency-Key fingerprint includes content hashes |
 | CancelInput | expectedVersion, reason ≤500; permitted only before pickup |
 | MerchantCancelInput | merchantId, expectedVersion, reason; trusted service credential plus parcel merchant ownership match required |
@@ -108,7 +110,10 @@ All body fields below are required unless marked optional. Reject unknown author
 | PricingOverviewQuery | page >=1 default 1; pageSize 1-100 default 20; optional nonempty zoneId UUID; zone-level pagination by name/id |
 | PricingInput | zoneId, size, baseFee ≥0, perKgFee ≥0, currency LKR, expectedVersion on update; version immutable once used |
 | PageQuery | page ≥1 default 1, pageSize 1–100 default 20; stable createdAt+id ordering |
-| AssignmentQuery | PageQuery plus optional date YYYY-MM-DD (default today in Operations:TimeZone, proposed Asia/Colombo), includeOverdue boolean default true; server always scopes current assignments to Courier sub |
+| AssignmentQuery | PageQuery plus optional date YYYY-MM-DD (default today in Operations:TimeZone, proposed Asia/Colombo), includeOverdue boolean default true, status Assigned/PickedUp/InTransit/OutForDelivery, search (literal tracking-number substring, max 100 characters), overdueOnly boolean default false; filters apply before paging; server always scopes current assignments to Courier sub |
+| CourierSummaryQuery | Optional date, includeOverdue, overdueOnly and search as AssignmentQuery; no paging or status parameter |
+| CourierHistoryQuery | PageQuery plus optional status Delivered/Failed, date YYYY-MM-DD (original service date), search tracking substring; omitted date covers all retained history; no private recipient/address/proof links |
+| OrderQuery | PageQuery plus optional state Accepted/Retrying/Created/Failed and parcelStatus from the parcel enum; processing failures and delivery failures are distinct filters |
 | ParcelQuery | PageQuery + optional status, from/to UTC dates; Created filter covers dispatcher unassigned; owner filter is forced server-side |
 | DateQuery | from inclusive/to exclusive UTC timestamps, maximum 366 days; required for reports, default current UTC day for dashboard |
 | EventReference | eventId, parcelId, parcelVersion; verifies persisted event belongs to that parcel/version before resolving |
@@ -123,7 +128,7 @@ Quote pricing: `total = baseFee(zone,size,pricingVersion) + perKgFee * max(0, we
 | TokenPair | accessToken, tokenType Bearer, expiresInSeconds 900, user Profile; mobile gets refreshToken, browser gets HttpOnly cookie; never return local/provider credentials |
 | Quote | quoteId, total, currency, pricingVersion, expiresAt, fingerprint |
 | Parcel | id, trackingNumber, status, version, priceSnapshot, createdAt; authenticated projection additionally contains authorized recipient/address, assignment and private history; never raw storage URL |
-| OrderJob | id, externalOrderId, state Accepted/Retrying/Created/Failed, attempts, nextRetryAt nullable, parcelId/trackingNumber nullable until Created, parcelStatus/parcelVersion/lastStatusChangedAt/terminalAt nullable, errorCode nullable; no false parcel result before creation |
+| OrderJob | id, externalOrderId, state Accepted/Retrying/Created/Failed, attempts, nextRetryAt nullable, parcelId/trackingNumber nullable until Created, parcelStatus/parcelVersion/lastStatusChangedAt/terminalAt nullable, errorCode nullable, lastRefreshedAt nullable, failureReason nullable (RecipientUnavailable/AddressUnreachable/Damaged/Other only for a Failed parcel); no internal Courier notes or false parcel result before creation |
 | OneTimeKey | keyId, apiKey `swd_test_<keyId>_<random>` (local examples), scopes; raw secret only on creation; metadata lists omit secret/hash |
 | OneTimeWebhook | id, url, events, active, secret one time, keyVersion; lists omit secret/ciphertext |
 | DispatchResult | eventId, accepted true; Merchant durably deduplicates before 202; response exposes no subscription secret |
@@ -174,7 +179,7 @@ CourierAssignments returns the current Courier's active assignments with assignm
 
 Delivery owns couriers operational profiles (id references the Identity user ID, active, onDuty, capacity and zone memberships) and the assignment foreign key points to this local profile. A Courier role alone cannot manufacture an operational profile or assignment. The local demo seeds profiles for verified Courier identities; an unprovisioned/inactive/out-of-zone/full courier is rejected by assignment validation. No service queries Identity SQL. A separate general provisioning API is not assumed by this fixture.
 
-PickedUp/InTransit/OutForDelivery require a nonblank delivery note; missing notes return 400 before history/state/outbox changes. Failed stores its required reason; final completion stores recipientName and valid photo/signature. Notes/proof remain private and absent from StatusChanged and public timelines. The assignment permits note or proof, while the final-image/signature requirement is a proposed stronger team policy.
+PickedUp/InTransit/OutForDelivery accept an optional private delivery note up to 500 characters; absent or whitespace-only notes normalize to null and do not block the transition. Failed stores its required reason; final completion stores recipientName and valid photo/signature. Notes/proof remain private and absent from StatusChanged and public timelines. The assignment permits note or proof, while the final-image/signature requirement is a proposed stronger team policy.
 
 ## Status, proof and error behavior
 
@@ -226,3 +231,45 @@ columns. Activating or deactivating a version requires confirmation and its
 persisted expectedVersion. Creating active pricing can replace the previous
 active version for the same zone/size; saved rates and booking snapshots remain
 unchanged. No schema migration is required for the overview read.
+
+## Courier workspace and Merchant failure visibility (15 November 2026)
+
+`CourierWorkSummary` contains serviceDate, timeZone, day and queues stage counts
+(assigned, pickedUp, inTransit, outForDelivery, delivered, failed, active, completed,
+total), and overdueCount. Day counts cover the selected original service date;
+queues include earlier active work only when requested. OverdueCount remains a
+separate active-work insight. Reassigned-away records never grant ownership or
+count a replacement Courier's outcome. Summary reads use one repeatable-read
+snapshot and expose no addresses, recipients, fees or proof.
+
+Courier UI queue filters persist in the URL; detail Back restores that queue.
+Stage confirmation accepts an optional internal note; failure requires a canonical
+reason; final completion requires recipient name and JPEG/PNG photo or signature.
+These are server-enforced transitions, not local status changes.
+
+Customers see Failed, its readable canonical reason and history timestamp only
+for their own booking. Merchants see the same category and terminal/status-change
+time through their own OrderJob, with lastRefreshedAt. Merchant-origin recipients
+are not implicitly linked to Customer accounts by phone, email or address.
+
+Delivery's private gRPC implementation uses the existing CreateBooking and
+GetBookingByExternalOrder RPCs. BookingResult adds optional field 11,
+`failure_reason`; old readers can ignore it. No delivery note is included.
+Merchant order reconciliation uses an explicit service credential and scoped
+merchant/external-order lookup. Public API keys and human JWTs do not authorize
+this workload boundary. Production requires HTTPS; development cleartext HTTP/2
+requires an explicit environment-limited option. Durable replay bindings and all
+booking/history/price/outbox writes commit atomically.
+
+Registration/admin approval, API-key order submission and webhook subscription
+contracts are retained. The new reconciliation path supplies dashboard/status
+reads; it does not replace the documented event/outbox/webhook dispatch pipeline
+or claim that every intermediate transition can be recovered from polling.
+
+Courier history detail is a separate bounded operational projection. It requires a
+retained Delivered/Failed assignment belonging to the authenticated Courier,
+returns 404 for active/foreign/former-assignment/missing records, and exposes only
+tracking/status/version/fee, booking time, route cities, package size/weight,
+service date, assignment/pickup/final timestamps, canonical failure category and
+a proof-recorded boolean. Full addresses, recipient names/phones, private notes,
+actor IDs and proof images/storage references remain unavailable after completion.
